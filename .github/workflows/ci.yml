@@ -1,0 +1,162 @@
+name: CI - Full Matrix
+
+on:
+  push:
+    branches: [main, master, develop]
+    tags:
+      - 'v*'
+  pull_request:
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Linting and Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --group dev --group marshmallow3
+
+      - name: Run ruff linting
+        run: uv run ruff check marshmallow_jit tests
+
+      - name: Run ruff formatting check
+        run: uv run ruff format --check marshmallow_jit tests
+
+  type-check:
+    name: Type Checking
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --group dev --group marshmallow3
+
+      - name: Run ty type checking
+        run: uv run ty check marshmallow_jit tests
+
+  test:
+    name: Test - Python ${{ matrix.python-version }} / Marshmallow ${{ matrix.marshmallow-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.14"]
+        marshmallow-version: ["3", "4"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies (Marshmallow ${{ matrix.marshmallow-version }})
+        shell: bash
+        run: |
+          if [ "${{ matrix.marshmallow-version }}" = "3" ]; then
+            uv sync --group dev --group marshmallow3
+          else
+            uv sync --group dev --group marshmallow4
+          fi
+
+      - name: Run tests
+        run: uv run pytest --cov=marshmallow_jit --cov-report=xml --cov-report=term-missing -v
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' && matrix.marshmallow-version == '3'
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: py${{ matrix.python-version }}-marshmallow${{ matrix.marshmallow-version }}
+          fail_ci_if_error: false
+
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --group dev --group marshmallow3
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=marshmallow_jit --cov-report=term-missing
+
+      - name: Check coverage threshold (90%)
+        run: uv run coverage report --fail-under=90
+
+  test-summary:
+    name: Test Suite Summary
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, test, coverage-report]
+    if: always()
+
+    steps:
+      - name: Check overall status
+        run: |
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Type Check: ${{ needs.type-check.result }}"
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Coverage: ${{ needs.coverage-report.result }}"
+
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.type-check.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.coverage-report.result }}" != "success" ]; then
+            echo "❌ Some checks failed"
+            exit 1
+          else
+            echo "✅ All checks passed"
+          fi

@@ -1,0 +1,86 @@
+# SPDX-FileCopyrightText: 2026 CESNET z.s.p.o.
+# SPDX-License-Identifier: MIT
+"""Date field serialization and deserialization inliners."""
+
+from typing import TYPE_CHECKING, cast, override
+
+from marshmallow import Schema
+from marshmallow.fields import Date as DateField
+from marshmallow.fields import Field
+
+from marshmallow_jit.jit.context import Context
+from marshmallow_jit.jit.python_code import PythonCode
+
+from .base import Inliner
+
+if TYPE_CHECKING:
+    pass
+
+
+class DateSerializationInliner(Inliner):
+    @override
+    def generate_code(
+        self,
+        code: PythonCode,
+        value_variable_name: str,
+        field_obj_variable_name: str,
+        schema: Schema,
+        attr_name: str,
+        field: Field,
+        context: Context,
+    ) -> None:
+        from ._temporal_base import _TemporalSerializationInliner
+
+        inline = _TemporalSerializationInliner()
+        inline.generate_code(code, value_variable_name, field_obj_variable_name, schema, attr_name, field, context)
+
+
+class DateDeserializationInliner(Inliner):
+    """Date deserialization that parses date strings.
+
+    Handles the same cases as marshmallow's Date._deserialize:
+    - Supports formats: iso, iso8601 (both use ISO 8601 date format)
+    - Falls back to strptime for custom formats
+    - Returns date objects (not datetime)
+    - Catches TypeError, AttributeError, ValueError and raises 'invalid' error
+    """
+
+    @override
+    def generate_code(
+        self,
+        code: PythonCode,
+        value_variable_name: str,
+        field_obj_variable_name: str,
+        schema: Schema,
+        attr_name: str,
+        field: Field,
+        context: Context,
+    ) -> None:
+        field = cast(DateField, field)
+        # Add necessary imports
+        code.add_import_line("import datetime as dt")
+
+        data_format = field.format or field.DEFAULT_FORMAT
+        func = field.DESERIALIZATION_FUNCS.get(data_format)
+
+        if func is not None:
+            # Use built-in deserialization function (iso/iso8601 both use from_iso_date)
+            code.add_import_line("from marshmallow.utils import from_iso_date")
+            code += f"""
+            try:
+                {value_variable_name} = from_iso_date({value_variable_name})
+            except (TypeError, AttributeError, ValueError) as error:
+                raise {field_obj_variable_name}.make_error(
+                    "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+                ) from error
+            """
+        else:
+            # Custom format - use strptime and extract date
+            code += f"""
+            try:
+                {value_variable_name} = dt.datetime.strptime({value_variable_name}, {data_format!r}).date()
+            except (TypeError, AttributeError, ValueError) as error:
+                raise {field_obj_variable_name}.make_error(
+                    "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+                ) from error
+            """

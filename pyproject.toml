@@ -1,0 +1,125 @@
+# SPDX-FileCopyrightText: 2020-2024 CERN.
+# SPDX-FileCopyrightText: 2022 TU Wien.
+# SPDX-FileCopyrightText: 2025 Graz University of Technology.
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marshmallow-jit"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.14"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "marshmallow"
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "ty",
+    "pytest",
+    "pytest-cov",
+    "tqdm",
+    "line-profiler>=5.0.2",
+    "scalene>=2.3.0",
+]
+marshmallow3 = [
+    "marshmallow>=3,<4",
+    "marshmallow-utils"
+]
+marshmallow4 = [
+    "marshmallow>=4,<5",
+]
+
+[project.entry-points."marshmallow_jit.serialization_inliners.builtin"]
+builtin = "marshmallow_jit.jit.inliners.entrypoints:builtin_serialization_inliner_factory"
+
+[project.entry-points."marshmallow_jit.deserialization_inliners.builtin"]
+builtin = "marshmallow_jit.jit.inliners.entrypoints:builtin_deserialization_inliner_registry"
+
+[project.entry-points."marshmallow_jit.accessors.builtin"]
+builtin = "marshmallow_jit.jit.accessors.entrypoints:builtin_serialization_accessor_factory"
+
+[project.entry-points."marshmallow_jit.accessors"]
+marshmallow_utils = "marshmallow_jit.contrib.marshmallow_utils:nested_attribute_accessor_factory"
+
+[project.entry-points."marshmallow_jit.setters.builtin"]
+builtin = "marshmallow_jit.jit.setters.entrypoints:builtin_deserialization_setter_factory"
+
+[project.entry-points."marshmallow_jit.schema_serializers.builtin"]
+builtin = "marshmallow_jit.jit.serializers.entrypoints:builtin_schema_serializer_factory"
+
+[project.entry-points."marshmallow_jit.schema_deserializers.builtin"]
+builtin = "marshmallow_jit.jit.serializers.entrypoints:builtin_schema_deserializer_factory"
+
+[project.entry-points."marshmallow_jit.makers.builtin"]
+builtin = "marshmallow_jit.jit.makers.entrypoints:builtin_maker_factory"
+
+[tool.uv]
+conflicts = [
+    [
+        { group = "marshmallow3" },
+        { group = "marshmallow4" },
+    ],
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["marshmallow_jit"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+extend-exclude = ["docs/generated_code/serialize_*.py"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "ANN", # flake8 annotations
+    "PYI", # flake8-pyi
+]
+ignore = [
+    "ANN401"
+]
+preview = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.src]
+include = ["marshmallow_jit", "tests"]
+
+[tool.ty.rules]
+# Enable all rules by default
+all = "error"
+
+[tool.pytest.ini_options]
+addopts = "--cov=marshmallow_jit --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["marshmallow_jit"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]

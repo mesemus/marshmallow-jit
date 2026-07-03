@@ -1,0 +1,102 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+
+jobs:
+  benchmark:
+    name: Run Performance Benchmarks - Marshmallow ${{ matrix.marshmallow-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        marshmallow-version: ["3", "4"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies (Marshmallow ${{ matrix.marshmallow-version }})
+        run: |
+          if [ "${{ matrix.marshmallow-version }}" = "3" ]; then
+            uv sync --group dev --group marshmallow3
+          else
+            uv sync --group dev --group marshmallow4
+          fi
+
+      - name: Run serialization benchmarks
+        run: |
+          uv run python performance/serialization_speed.py > benchmark_results_m${{ matrix.marshmallow-version }}.txt
+          cat benchmark_results_m${{ matrix.marshmallow-version }}.txt
+
+      - name: Check performance regression
+        run: |
+          # Extract speedup from benchmark results
+          SPEEDUP=$(grep -oP 'Speedup: \K[\d.]+' benchmark_results_m${{ matrix.marshmallow-version }}.txt || echo "0")
+          echo "Detected speedup: ${SPEEDUP}x"
+
+          # Fail if speedup is less than 2.0x (indicating regression)
+          if (( $(echo "$SPEEDUP < 2.0" | bc -l) )); then
+            echo "❌ Performance regression detected! Speedup ${SPEEDUP}x is below 2.0x threshold"
+            exit 1
+          else
+            echo "✅ Performance check passed: ${SPEEDUP}x speedup"
+          fi
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-marshmallow-${{ matrix.marshmallow-version }}
+          path: benchmark_results_m${{ matrix.marshmallow-version }}.txt
+          retention-days: 30
+
+  profiling:
+    name: Run Profiling Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --group dev --group marshmallow3
+
+      - name: Run profiling benchmark
+        run: |
+          uv run python profiling/profile_hotspots.py benchmark > profiling_results.txt
+          cat profiling_results.txt
+
+      - name: Upload profiling results
+        uses: actions/upload-artifact@v4
+        with:
+          name: profiling-results
+          path: profiling_results.txt
+          retention-days: 30
