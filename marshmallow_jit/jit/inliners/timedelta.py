@@ -88,19 +88,38 @@ class TimeDeltaDeserializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
+        from marshmallow_jit.compat import _MARSHMALLOW_MAJOR_VERSION
+
         field = cast(TimeDeltaField, field)
         # Add necessary imports
         code.add_import_line("import datetime as dt")
 
         precision = field.precision
 
-        # Check if value is already a timedelta instance (early return optimization)
-        with code.indent(f"if not isinstance({value_variable_name}, dt.timedelta)"):
-            if HAS_TIMEDELTA_SERIALIZATION_TYPE:
-                # Marshmallow 3: Use serialization_type
-                serialization_type = field.serialization_type.__name__
-                if serialization_type == "int":
-                    code += f"""
+        # In marshmallow 4, if value is already a timedelta instance, it's accepted
+        # In marshmallow 3, timedelta instances are rejected and must be numbers
+        if _MARSHMALLOW_MAJOR_VERSION >= 4:
+            # Marshmallow 4: Skip parsing if already a timedelta
+            with code.indent(f"if not isinstance({value_variable_name}, dt.timedelta)"):
+                self._generate_parsing_code(code, value_variable_name, field_obj_variable_name, field, precision)
+        else:
+            # Marshmallow 3: Always parse (timedelta instances will fail in the parser)
+            self._generate_parsing_code(code, value_variable_name, field_obj_variable_name, field, precision)
+
+    def _generate_parsing_code(
+        self,
+        code: PythonCode,
+        value_variable_name: str,
+        field_obj_variable_name: str,
+        field: TimeDeltaField,
+        precision: str,
+    ) -> None:
+        """Generate the timedelta parsing code based on serialization_type."""
+        if HAS_TIMEDELTA_SERIALIZATION_TYPE:
+            # Marshmallow 3: Use serialization_type
+            serialization_type = field.serialization_type.__name__
+            if serialization_type == "int":
+                code += f"""
 try:
     value = int({value_variable_name})
 except (TypeError, ValueError) as error:
@@ -111,9 +130,9 @@ try:
 except OverflowError as error:
     raise {field_obj_variable_name}.make_error("invalid") from error
 """
-                else:
-                    # Float serialization_type
-                    code += f"""
+            else:
+                # Float serialization_type
+                code += f"""
 try:
     value = float({value_variable_name})
 except (TypeError, ValueError) as error:
@@ -124,9 +143,9 @@ try:
 except OverflowError as error:
     raise {field_obj_variable_name}.make_error("invalid") from error
 """
-            else:
-                # Marshmallow 4: Always uses float
-                code += f"""
+        else:
+            # Marshmallow 4: Always uses float
+            code += f"""
 try:
     value = float({value_variable_name})
 except (TypeError, ValueError) as error:
