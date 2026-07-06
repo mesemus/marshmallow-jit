@@ -5,8 +5,8 @@
 from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
-from marshmallow.fields import Enum
 
+from marshmallow_jit.compat import MAEnum
 from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
@@ -29,7 +29,7 @@ class EnumSerializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
-        field = cast(Enum, field)
+        field = cast(MAEnum, field)
         with code.indent(f"if {value_variable_name} is not None"):
             if not field.by_value:
                 # Enum.__init__ always sets self.field = String() in this branch, and
@@ -70,7 +70,7 @@ class EnumDeserializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
-        field = cast(Enum, field)
+        field = cast(MAEnum, field)
 
         enum_var = code.add_variable(f"field__{attr_name}__enum", field.enum)
 

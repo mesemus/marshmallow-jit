@@ -5,9 +5,9 @@
 from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
-from marshmallow.fields import List
 
 from marshmallow_jit.compat import MAField as Field
+from marshmallow_jit.compat import MAList
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 
@@ -32,7 +32,7 @@ class ListSerializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
-        field = cast(List, field)
+        field = cast(MAList, field)
 
         # Handle None case - if the list is None, keep it as None
         with code.indent(f"if {value_variable_name} is not None"):
@@ -106,7 +106,7 @@ class ListDeserializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
-        field = cast(List, field)
+        field = cast(MAList, field)
 
         # Add required imports for generated code
         code.add_import_line("from marshmallow.utils import is_collection")

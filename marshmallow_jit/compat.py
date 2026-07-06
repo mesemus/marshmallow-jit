@@ -12,7 +12,7 @@ from email.utils import parsedate_to_datetime
 from typing import Any
 
 from marshmallow import EXCLUDE, INCLUDE, RAISE
-from marshmallow.fields import Field
+from marshmallow.fields import Constant, Enum, Field, List
 
 # Detect marshmallow version by checking if Field is subscriptable (generic)
 # In v3: Field is not generic
@@ -36,13 +36,19 @@ HAS_CONTEXT_PARAM = _MARSHMALLOW_MAJOR_VERSION == 3
 # TimeDelta always uses float in v4
 HAS_TIMEDELTA_SERIALIZATION_TYPE = _MARSHMALLOW_MAJOR_VERSION == 3
 
-# Type alias for Field that works in both marshmallow 3 and 4
-# In v3: Field is not generic, so we use Field directly
-# In v4: Field is generic, so we use Field[Any]
+# Type aliases for fields that work in both marshmallow 3 and 4
+# In v3: These fields are not generic
+# In v4: These fields are generic with type parameters
 if _MARSHMALLOW_MAJOR_VERSION == 3:
     MAField = Field  # type: ignore[misc]
+    MAConstant = Constant  # type: ignore[misc]
+    MAList = List  # type: ignore[misc]
+    MAEnum = Enum  # type: ignore[misc]
 else:
     MAField = Field[Any]
+    MAConstant = Constant[Any]
+    MAList = List[Any]
+    MAEnum = Enum[Any]
 
 # Temporal parsing functions were moved in marshmallow 4
 # In v3: marshmallow.utils.from_iso_datetime, from_iso_date, from_iso_time, from_rfc
@@ -85,4 +91,7 @@ __all__ = [
     "from_iso_time",
     "from_rfc",
     "MAField",
+    "MAConstant",
+    "MAList",
+    "MAEnum",
 ]

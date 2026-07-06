@@ -21,7 +21,6 @@ from marshmallow.fields import (
     Dict,
     Email,
     Enum,
-    Field,
     Float,
     Function,
     Integer,
@@ -40,6 +39,8 @@ from marshmallow.fields import (
     TimeDelta,
     Url,
 )
+
+from marshmallow_jit.compat import MAField as Field
 
 from marshmallow_jit.jit.registry import Factory
 from marshmallow_jit.utils import is_overridden
