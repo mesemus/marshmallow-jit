@@ -9,7 +9,9 @@ def _jit_serialize_SerializeTimeDeltaSchema_1(self, obj: typing.Any, *, many: bo
         value = missing
     if value is not missing:
         if value is not None:
-            microseconds = marshmallow.utils.timedelta_to_microseconds(value)
-            value = microseconds / field__a__unit_3
+            base_unit = __import__('datetime').timedelta(**{'seconds': 1})
+            delta = marshmallow.utils.timedelta_to_microseconds(value)
+            unit = marshmallow.utils.timedelta_to_microseconds(base_unit)
+            value = delta // unit
         ret_2['a'] = value
     return ret_2

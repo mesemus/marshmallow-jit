@@ -51,13 +51,12 @@ def _jit_deserialize_SerializeDateTimeSchema_1(
                     raise field_2.make_error("null")
                 value = None
             else:
-                if not isinstance(value, dt.datetime):
-                    try:
-                        value = from_iso_datetime(value)
-                    except (TypeError, AttributeError, ValueError) as error:
-                        raise field_2.make_error(
-                            "invalid", input=value, obj_type=field_2.OBJ_TYPE
-                        ) from error
+                try:
+                    value = from_iso_datetime(value)
+                except (TypeError, AttributeError, ValueError) as error:
+                    raise field_2.make_error(
+                        "invalid", input=value, obj_type=field_2.OBJ_TYPE
+                    ) from error
         except ValidationError as error:
             error_store.store_error(error.messages, 'a', index=index)
             return error.valid_data if error.valid_data is not None else missing

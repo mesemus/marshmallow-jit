@@ -40,26 +40,21 @@ def _jit_deserialize_SerializeConstantSchema_1(
                         value is not missing
                         or not(partial is True or (partial_is_collection and 'a' in partial))
                     ):
-        # If we have a value or not ignoring missing fields
-        d_kwargs = {}
-        # Allow partial loading of nested schemas.
-        if partial_is_collection:
-            prefix = 'a' + "."
-            len_prefix = len(prefix)
-            sub_partial = [f[len_prefix:] for f in partial if f.startswith(prefix)]
-            d_kwargs["partial"] = sub_partial
-        elif partial is not None:
-            d_kwargs["partial"] = partial
+        # Inline Field.deserialize() - validate missing, handle None, call _deserialize, validate
         try:
-            value = field_obj_deserialize_3(
-                value,
-                'a',
-                data,
-                **d_kwargs,
-            )
+            if value is missing:
+                if field_2.required:
+                    raise field_2.make_error("required")
+                value = field_2.load_default
+            elif value is None:
+                if not field_2.allow_none:
+                    raise field_2.make_error("null")
+                value = None
+            else:
+                value = 'constant-value'
         except ValidationError as error:
             error_store.store_error(error.messages, 'a', index=index)
-            return error.valid_data or missing
+            return error.valid_data if error.valid_data is not None else missing
         if value is not missing:
             ret_2['a'] = value
     if unknown != EXCLUDE:
