@@ -51,23 +51,36 @@ def _jit_deserialize_SerializeUrlSchema_1(
                     raise field_2.make_error("null")
                 value = None
             else:
-                if not isinstance(value, (str, bytes)):
-                    raise field_2.make_error("invalid")
-                try:
-                    value = marshmallow.utils.ensure_text_type(value)
-                except UnicodeDecodeError as error:
-                    raise field_2.make_error("invalid_utf8") from error
+                # Only call ensure_text_type if needed (already a str is fast path)
+                if type(value) is not str:
+                    if not isinstance(value, (str, bytes)):
+                        raise field_2.make_error("invalid")
+                    try:
+                        value = marshmallow.utils.ensure_text_type(value)
+                    except UnicodeDecodeError as error:
+                        raise field_2.make_error("invalid_utf8") from error
                 validation_errors_7 = []
                 validation_kwargs_8 = {}
                 try:
-                    r = validators_5[0](value)
-                    if r is False and not isinstance(validator, Validator):
-                        warnings.warn(
-                            "Returning `False` from a validator is deprecated. Raise a `ValidationError` instead.",
-                            ChangedInMarshmallow4Warning,
-                            stacklevel=2,
+                    _validator_self = validators_5[0]
+                    if not value:
+                        raise ValidationError(_validator_self._format_error(value))
+                    # Check first if the scheme is valid
+                    _url_scheme = None
+                    if "://" in value:
+                        _url_scheme = value.split("://")[0].lower()
+                        if _url_scheme not in _validator_self.schemes:
+                            raise ValidationError(_validator_self._format_error(value))
+                    # Hostname is optional for file URLs. If absent it means `localhost`.
+                    # Fill it in for the validation if needed
+                    if _url_scheme == "file" and value.startswith("file:///"):
+                        _url_matched = (
+                            url_regex_9.search(value.replace("file:///", "file://localhost/", 1))
                         )
-                        raise ValidationError(and_default_error_6)  # noqa: TRY301
+                    else:
+                        _url_matched = url_regex_9.search(value)
+                    if not _url_matched:
+                        raise ValidationError(_validator_self._format_error(value))
                 except ValidationError as err:
                     validation_kwargs_8.update(err.kwargs)
                     if isinstance(err.messages, dict):
@@ -82,7 +95,7 @@ def _jit_deserialize_SerializeUrlSchema_1(
         if value is not missing:
             ret_2['a'] = value
     if unknown != EXCLUDE:
-        for key in set(data) - loaded_fields_9:
+        for key in set(data) - loaded_fields_10:
             value = data[key]
             if unknown == INCLUDE:
                 ret_2[key] = value

@@ -418,14 +418,25 @@ def test_date_serialization_matches_marshmallow(format: str) -> None:
 
 
 def test_timedelta_serialization_inliner_code() -> None:
+    from marshmallow_jit.compat import HAS_TIMEDELTA_SERIALIZATION_TYPE
+
     code = generate(TimeDeltaSerializationInliner(), TimeDelta())
     # Check that the generated code contains the expected elements
     code_str = str(code)
-    assert "base_unit" in code_str
     assert "timedelta_to_microseconds" in code_str
-    assert "// unit" in code_str  # Integer division for int serialization_type
+
+    if HAS_TIMEDELTA_SERIALIZATION_TYPE:
+        # Marshmallow 3: Uses base_unit and integer division
+        assert "base_unit" in code_str
+        assert "// unit" in code_str  # Integer division for int serialization_type
+    else:
+        # Marshmallow 4: Uses direct microseconds division
+        assert "microseconds" in code_str
+        assert "/ " in code_str  # Float division
+
     # The generate() helper registers a field variable
-    assert len(code.variables) == 1
+    # In marshmallow 4, we also register the unit variable
+    assert len(code.variables) >= 1
     assert_compilable(code, {})
 
 

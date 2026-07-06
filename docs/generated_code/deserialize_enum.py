@@ -51,14 +51,15 @@ def _jit_deserialize_SerializeEnumSchema_1(
                     raise field_2.make_error("null")
                 value = None
             else:
-                # First validate and deserialize using the inner field (String)
-                value = field__a__inner_6._deserialize(value, 'a', data)
-                try:
-                    value = getattr(field__a__enum_5, value)
-                except AttributeError as error:
-                    raise field_2.make_error(
-                        "unknown", choices=field_2.choices_text
-                    ) from error
+                if not isinstance(value, field__a__enum_5):
+                    # First validate and deserialize using the inner field (String)
+                    value = field__a__inner_6._deserialize(value, 'a', data)
+                    try:
+                        value = getattr(field__a__enum_5, value)
+                    except AttributeError as error:
+                        raise field_2.make_error(
+                            "unknown", choices=field_2.choices_text
+                        ) from error
         except ValidationError as error:
             error_store.store_error(error.messages, 'a', index=index)
             return error.valid_data if error.valid_data is not None else missing

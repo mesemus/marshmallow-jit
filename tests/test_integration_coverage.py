@@ -1301,6 +1301,14 @@ class TestContextPassing:
         """Test that context is passed to nested schemas."""
         import warnings
 
+        import pytest
+
+        from marshmallow_jit.compat import HAS_CONTEXT_PARAM
+
+        # Context parameter was removed in marshmallow 4
+        if not HAS_CONTEXT_PARAM:
+            pytest.skip("Context parameter removed in marshmallow 4")
+
         from marshmallow.warnings import RemovedInMarshmallow4Warning
 
         # Suppress deprecation warnings for context parameter (testing marshmallow 3.x compatibility)

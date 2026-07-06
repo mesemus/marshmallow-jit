@@ -73,40 +73,43 @@ class EnumDeserializationInliner(Inliner):
 
         enum_var = code.add_variable(f"field__{attr_name}__enum", field.enum)
 
-        if not field.by_value:
-            # by_value=False: look up by name
-            # First deserialize using the inner String field, then look up the enum member
-            inner_field_variable = code.add_variable(f"field__{attr_name}__inner", field.field)
-            code += f"""
-            # First validate and deserialize using the inner field (String)
-            {value_variable_name} = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
-            try:
-                {value_variable_name} = getattr({enum_var}, {value_variable_name})
-            except AttributeError as error:
-                raise {field_obj_variable_name}.make_error(
-                    "unknown", choices={field_obj_variable_name}.choices_text
-                ) from error
-            """
-        elif field.by_value is True:
-            # by_value=True: look up by value (uses Raw field internally)
-            code += f"""
-            try:
-                {value_variable_name} = {enum_var}({value_variable_name})
-            except ValueError as error:
-                raise {field_obj_variable_name}.make_error(
-                    "unknown", choices={field_obj_variable_name}.choices_text
-                ) from error
-            """
-        else:
-            # by_value=<custom field>: deserialize using custom field, then create enum
-            inner_field_variable = code.add_variable(f"field__{attr_name}__inner", field.field)
-            code += f"""
-            # First deserialize using the inner field
-            temp_value = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
-            try:
-                {value_variable_name} = {enum_var}(temp_value)
-            except ValueError as error:
-                raise {field_obj_variable_name}.make_error(
-                    "unknown", choices={field_obj_variable_name}.choices_text
-                ) from error
-            """
+        # First check if the value is already an enum instance (early return optimization)
+        # This matches marshmallow 4's behavior
+        with code.indent(f"if not isinstance({value_variable_name}, {enum_var})"):
+            if not field.by_value:
+                # by_value=False: look up by name
+                # First deserialize using the inner String field, then look up the enum member
+                inner_field_variable = code.add_variable(f"field__{attr_name}__inner", field.field)
+                code += f"""
+# First validate and deserialize using the inner field (String)
+{value_variable_name} = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
+try:
+    {value_variable_name} = getattr({enum_var}, {value_variable_name})
+except AttributeError as error:
+    raise {field_obj_variable_name}.make_error(
+        "unknown", choices={field_obj_variable_name}.choices_text
+    ) from error
+"""
+            elif field.by_value is True:
+                # by_value=True: look up by value (uses Raw field internally)
+                code += f"""
+try:
+    {value_variable_name} = {enum_var}({value_variable_name})
+except ValueError as error:
+    raise {field_obj_variable_name}.make_error(
+        "unknown", choices={field_obj_variable_name}.choices_text
+    ) from error
+"""
+            else:
+                # by_value=<custom field>: deserialize using custom field, then create enum
+                inner_field_variable = code.add_variable(f"field__{attr_name}__inner", field.field)
+                code += f"""
+# First deserialize using the inner field
+temp_value = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
+try:
+    {value_variable_name} = {enum_var}(temp_value)
+except ValueError as error:
+    raise {field_obj_variable_name}.make_error(
+        "unknown", choices={field_obj_variable_name}.choices_text
+    ) from error
+"""

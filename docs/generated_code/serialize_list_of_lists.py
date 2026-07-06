@@ -15,7 +15,8 @@ def _jit_serialize_SerializeListSchema_1(self, obj: typing.Any, *, many: bool = 
                     item_2_iter, item_2 = item_2, []
                     for item_3 in item_2_iter:
                         if item_3 is not None:
-                            item_3 = marshmallow.utils.ensure_text_type(item_3)
+                            if type(item_3) is not str:
+                                item_3 = marshmallow.utils.ensure_text_type(item_3)
                         item_2.append(item_3)
                 value.append(item_2)
         ret_2['a'] = value

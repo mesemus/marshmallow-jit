@@ -9,12 +9,20 @@ def _jit_serialize_SerializeDictSchema_1(self, obj: typing.Any, *, many: bool = 
         value = missing
     if value is not missing:
         if value is not None:
-            value_iter, value = value, {}
+            value_iter = value
+            value_keys = {}
+            for key_2 in value_iter:
+                key_2_serialized = key_2
+                if key_2_serialized is not None:
+                    if type(key_2_serialized) is not str:
+                        key_2_serialized = marshmallow.utils.ensure_text_type(key_2_serialized)
+                value_keys[key_2] = key_2_serialized
+            value = {}
             for key_2, value_2 in value_iter.items():
-                if key_2 is not None:
-                    key_2 = marshmallow.utils.ensure_text_type(key_2)
-                if value_2 is not None:
-                    value_2 = int(value_2)
-                value[key_2] = value_2
+                if key_2 in value_keys:
+                    key_2_final = value_keys[key_2]
+                    if value_2 is not None:
+                        value_2 = int(value_2)
+                    value[key_2_final] = value_2
         ret_2['a'] = value
     return ret_2

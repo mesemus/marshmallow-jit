@@ -55,6 +55,8 @@ from marshmallow.fields import (
     Url,
 )
 
+from marshmallow_jit.compat import HAS_TIMEDELTA_SERIALIZATION_TYPE
+
 # Import marshmallow-utils fields if available
 try:
     from marshmallow_utils.fields import (
@@ -338,9 +340,7 @@ class _UnrecognizedField(Field):
         return f"unrecognized:{value}"
 
     @override
-    def _deserialize(
-        self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any
-    ) -> Any:
+    def _deserialize(self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any) -> Any:
         return f"unrecognized:{value}"
 
 
@@ -392,10 +392,34 @@ FIELD_MATRIX: list[tuple[str, Callable[[], Field], list[Any]]] = [
     ("date_custom_format", lambda: Date(format="%Y/%m/%d"), [dt.date(2024, 1, 2), "not-a-date"]),
     ("timedelta_seconds", lambda: TimeDelta(), [dt.timedelta(days=1, seconds=2), "not-a-timedelta", 5]),
     ("timedelta_days", lambda: TimeDelta(precision="days"), [dt.timedelta(days=3), "not-a-timedelta"]),
-    (
-        "timedelta_float",
-        lambda: TimeDelta(serialization_type=float),
-        [dt.timedelta(hours=1, minutes=30), "not-a-timedelta", 1.5],
+    # In marshmallow 3, TimeDelta has serialization_type parameter
+    # In marshmallow 4, TimeDelta always uses float serialization
+    *(
+        [
+            (
+                "timedelta_float",
+                lambda: TimeDelta(serialization_type=float),
+                [dt.timedelta(hours=1, minutes=30), "not-a-timedelta", 1.5],
+            ),
+            (
+                "custom_timedelta",
+                lambda: TimeDelta(precision="hours", serialization_type=int),
+                [dt.timedelta(hours=3, minutes=15), "not-a-timedelta", 3],
+            ),
+        ]
+        if HAS_TIMEDELTA_SERIALIZATION_TYPE
+        else [
+            (
+                "timedelta_float",
+                lambda: TimeDelta(),
+                [dt.timedelta(hours=1, minutes=30), "not-a-timedelta", 1.5],
+            ),
+            (
+                "custom_timedelta",
+                lambda: TimeDelta(precision="hours"),
+                [dt.timedelta(hours=3, minutes=15), "not-a-timedelta", 3.25],
+            ),
+        ]
     ),
     (
         "ip",

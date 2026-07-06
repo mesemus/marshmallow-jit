@@ -60,27 +60,29 @@ class TimeDeserializationInliner(Inliner):
         # Add necessary imports
         code.add_import_line("import datetime as dt")
 
-        data_format = field.format or field.DEFAULT_FORMAT
-        func = field.DESERIALIZATION_FUNCS.get(data_format)
+        # Check if value is already a time instance (early return optimization)
+        with code.indent(f"if not isinstance({value_variable_name}, dt.time)"):
+            data_format = field.format or field.DEFAULT_FORMAT
+            func = field.DESERIALIZATION_FUNCS.get(data_format)
 
-        if func is not None:
-            # Use built-in deserialization function (iso/iso8601 both use from_iso_time)
-            code.add_import_line("from marshmallow.utils import from_iso_time")
-            code += f"""
-            try:
-                {value_variable_name} = from_iso_time({value_variable_name})
-            except (TypeError, AttributeError, ValueError) as error:
-                raise {field_obj_variable_name}.make_error(
-                    "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
-                ) from error
-            """
-        else:
-            # Custom format - use strptime and extract time
-            code += f"""
-            try:
-                {value_variable_name} = dt.datetime.strptime({value_variable_name}, {data_format!r}).time()
-            except (TypeError, AttributeError, ValueError) as error:
-                raise {field_obj_variable_name}.make_error(
-                    "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
-                ) from error
-            """
+            if func is not None:
+                # Use built-in deserialization function (iso/iso8601 both use from_iso_time)
+                code.add_import_line("from marshmallow_jit.compat import from_iso_time")
+                code += f"""
+try:
+    {value_variable_name} = from_iso_time({value_variable_name})
+except (TypeError, AttributeError, ValueError) as error:
+    raise {field_obj_variable_name}.make_error(
+        "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+    ) from error
+"""
+            else:
+                # Custom format - use strptime and extract time
+                code += f"""
+try:
+    {value_variable_name} = dt.datetime.strptime({value_variable_name}, {data_format!r}).time()
+except (TypeError, AttributeError, ValueError) as error:
+    raise {field_obj_variable_name}.make_error(
+        "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+    ) from error
+"""

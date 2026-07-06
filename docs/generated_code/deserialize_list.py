@@ -59,12 +59,14 @@ def _jit_deserialize_SerializeListSchema_1(
                 result_2 = []
                 for idx_2, item_2 in enumerate(value_iter):
                     try:
-                        if not isinstance(item_2, (str, bytes)):
-                            raise a_idx_2_inner_field_5.make_error("invalid")
-                        try:
-                            item_2 = marshmallow.utils.ensure_text_type(item_2)
-                        except UnicodeDecodeError as error:
-                            raise a_idx_2_inner_field_5.make_error("invalid_utf8") from error
+                        # Only call ensure_text_type if needed (already a str is fast path)
+                        if type(item_2) is not str:
+                            if not isinstance(item_2, (str, bytes)):
+                                raise a_idx_2_inner_field_5.make_error("invalid")
+                            try:
+                                item_2 = marshmallow.utils.ensure_text_type(item_2)
+                            except UnicodeDecodeError as error:
+                                raise a_idx_2_inner_field_5.make_error("invalid_utf8") from error
                         if item_2 is not missing:
                             result_2.append(item_2)
                     except ValidationError as error:

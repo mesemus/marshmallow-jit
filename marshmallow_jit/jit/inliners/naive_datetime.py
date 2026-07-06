@@ -59,17 +59,20 @@ class NaiveDateTimeDeserializationInliner(Inliner):
         field = cast(NaiveDateTimeField, field)
         # Add necessary imports
         code.add_import_line("import datetime as dt")
-        code.add_import_line("from marshmallow.utils import from_iso_datetime, is_aware")
+        code.add_import_line("from marshmallow_jit.compat import from_iso_datetime")
+        code.add_import_line("from marshmallow.utils import is_aware")
 
-        # First deserialize as regular datetime
-        code += f"""
-        try:
-            {value_variable_name} = from_iso_datetime({value_variable_name})
-        except (TypeError, AttributeError, ValueError) as error:
-            raise {field_obj_variable_name}.make_error(
-                "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
-            ) from error
-        """
+        # Check if value is already a datetime instance (early return optimization)
+        with code.indent(f"if not isinstance({value_variable_name}, dt.datetime)"):
+            # First deserialize as regular datetime
+            code += f"""
+try:
+    {value_variable_name} = from_iso_datetime({value_variable_name})
+except (TypeError, AttributeError, ValueError) as error:
+    raise {field_obj_variable_name}.make_error(
+        "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+    ) from error
+"""
 
         # Then check if aware and handle accordingly
         timezone_var = code.add_variable(f"field__{attr_name}__timezone", field.timezone)

@@ -51,12 +51,14 @@ def _jit_deserialize_SerializeStringSchema_1(
                     raise field_2.make_error("null")
                 value = None
             else:
-                if not isinstance(value, (str, bytes)):
-                    raise field_2.make_error("invalid")
-                try:
-                    value = marshmallow.utils.ensure_text_type(value)
-                except UnicodeDecodeError as error:
-                    raise field_2.make_error("invalid_utf8") from error
+                # Only call ensure_text_type if needed (already a str is fast path)
+                if type(value) is not str:
+                    if not isinstance(value, (str, bytes)):
+                        raise field_2.make_error("invalid")
+                    try:
+                        value = marshmallow.utils.ensure_text_type(value)
+                    except UnicodeDecodeError as error:
+                        raise field_2.make_error("invalid_utf8") from error
         except ValidationError as error:
             error_store.store_error(error.messages, 'a', index=index)
             return error.valid_data if error.valid_data is not None else missing

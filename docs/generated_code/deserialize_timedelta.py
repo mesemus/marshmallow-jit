@@ -51,14 +51,15 @@ def _jit_deserialize_SerializeTimeDeltaSchema_1(
                     raise field_2.make_error("null")
                 value = None
             else:
-                try:
-                    value = int(value)
-                except (TypeError, ValueError) as error:
-                    raise field_2.make_error("invalid") from error
-                try:
-                    value = dt.timedelta(**{'seconds': value})
-                except OverflowError as error:
-                    raise field_2.make_error("invalid") from error
+                if not isinstance(value, dt.timedelta):
+                    try:
+                        value = float(value)
+                    except (TypeError, ValueError) as error:
+                        raise field_2.make_error("invalid") from error
+                    try:
+                        value = dt.timedelta(**{'seconds': value})
+                    except OverflowError as error:
+                        raise field_2.make_error("invalid") from error
         except ValidationError as error:
             error_store.store_error(error.messages, 'a', index=index)
             return error.valid_data if error.valid_data is not None else missing

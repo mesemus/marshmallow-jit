@@ -237,11 +237,15 @@ class BaseSchemaDeserializer(SchemaDeserializer):
 
                 # Determine if we need to prepare partial kwargs (d_kwargs)
                 # - If deserialize() is overridden, we must call it with **d_kwargs
+                # - If _validate_missing() is overridden, we must call deserialize() with **d_kwargs
                 # - If no inliner exists, we fall back to _deserialize which uses **d_kwargs
                 # - If we have an inliner that needs partial kwargs, generate d_kwargs
                 # - Otherwise, the inliner handles deserialization directly without d_kwargs
                 needs_partial_kwargs = (
-                    deserialize_is_overridden or value_inliner is None or value_inliner.needs_partial_kwargs
+                    deserialize_is_overridden
+                    or validate_missing_is_overridden
+                    or value_inliner is None
+                    or value_inliner.needs_partial_kwargs
                 )
 
                 code += f"""
