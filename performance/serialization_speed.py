@@ -609,10 +609,42 @@ def main(argv: list[str] | None = None) -> None:
     for serializer_kind, rows in results.items():
         write_csv(rows, args.output_dir / f"serialization_speed_{serializer_kind}.csv")
 
+    # Print summaries and collect speedup statistics
+    all_dump_speedups = []
+    all_load_speedups = []
+
     for serializer_kind, rows in results.items():
         print_summary(serializer_kind, rows)
 
+        # Collect speedups for overall summary
+        for row in rows:
+            if not row.plain_dump_raised and not row.jit_dump_raised and row.jit_dump_mean_ms > 0:
+                speedup = row.plain_dump_mean_ms / row.jit_dump_mean_ms
+                if 0 < speedup < float("inf"):  # Skip invalid values
+                    all_dump_speedups.append(speedup)
+
+            if (
+                row.plain_load_mean_ms
+                and row.jit_load_mean_ms
+                and not row.plain_load_raised
+                and not row.jit_load_raised
+                and row.jit_load_mean_ms > 0
+            ):
+                speedup = row.plain_load_mean_ms / row.jit_load_mean_ms
+                if 0 < speedup < float("inf"):  # Skip invalid values
+                    all_load_speedups.append(speedup)
+
     print(f"\nDetailed CSV files written to {args.output_dir}/")
+
+    # Print overall summary
+    if all_dump_speedups:
+        avg_dump_speedup = sum(all_dump_speedups) / len(all_dump_speedups)
+        print(f"\n=== Overall Performance Summary ===")
+        print(f"Average Serialization Speedup: {avg_dump_speedup:.2f}x (across {len(all_dump_speedups)} test cases)")
+
+    if all_load_speedups:
+        avg_load_speedup = sum(all_load_speedups) / len(all_load_speedups)
+        print(f"Average Deserialization Speedup: {avg_load_speedup:.2f}x (across {len(all_load_speedups)} test cases)")
 
 
 if __name__ == "__main__":

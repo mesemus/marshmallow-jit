@@ -153,7 +153,7 @@ class BaseSchemaSerializer(SchemaSerializer):
             )
         # Check for field-specific accessor factories (e.g., NestedAttribute -> InstanceAccessor)
         try:
-            return serialization_accessor_registry.find(self.schema, attr_name, field_obj)
+            return serialization_accessor_registry.find(self.schema, attr_name, field_obj, silent=True)
         except KeyError:
             pass
         return self.default_value_accessor()
@@ -399,8 +399,9 @@ class BaseSchemaDeserializer(SchemaDeserializer):
             return deserialization_value_setter_registry.resolve(
                 self.schema._jit_options.deserialization_value_setter, self.schema, attr_name, field_obj
             )
+        # Check for field-specific setter factories
         try:
-            return deserialization_value_setter_registry.find(self.schema, attr_name, field_obj)
+            return deserialization_value_setter_registry.find(self.schema, attr_name, field_obj, silent=True)
         except KeyError:
             pass
         return self.default_value_setter()

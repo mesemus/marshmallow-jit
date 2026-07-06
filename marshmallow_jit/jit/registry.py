@@ -168,8 +168,11 @@ class Registry[T, **P]:
             context,
         )
 
-    def find(self, *args: P.args, **kwargs: P.kwargs) -> T:
+    def find(self, *args: P.args, silent: bool = False, **kwargs: P.kwargs) -> T:
         """Find the first factory matching the given arguments.
+
+        Args:
+            silent: If True, don't log warning when no factory matches (default False)
 
         Raises KeyError with detailed context if no factory matches.
         """
@@ -177,8 +180,9 @@ class Registry[T, **P]:
             if (ret := factory.find(*args, **kwargs)) is not None:
                 return ret
 
-        # Log detailed warning before raising
-        self._log_resolution_failure(args, kwargs, f"No factory found for {self.entrypoint_name}")
+        # Log detailed warning before raising (unless silenced)
+        if not silent:
+            self._log_resolution_failure(args, kwargs, f"No factory found for {self.entrypoint_name}")
 
         raise KeyError(
             f"Could not find factory {self.entrypoint_name} for {args} {kwargs}. "

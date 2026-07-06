@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   schedule:
     # Run weekly on Sunday at 00:00 UTC
-    - cron: '0 0 * * 0'
+    - cron: "0 0 * * 0"
 
 jobs:
   benchmark:
@@ -41,6 +41,8 @@ jobs:
           else
             uv sync --group dev --group marshmallow4
           fi
+          # Install package in editable mode to register entry points
+          uv pip install -e .
 
       - name: Run serialization benchmarks
         run: |
@@ -49,16 +51,25 @@ jobs:
 
       - name: Check performance regression
         run: |
-          # Extract speedup from benchmark results
-          SPEEDUP=$(grep -oP 'Speedup: \K[\d.]+' benchmark_results_m${{ matrix.marshmallow-version }}.txt || echo "0")
-          echo "Detected speedup: ${SPEEDUP}x"
+          # Extract average serialization speedup from the summary line
+          SPEEDUP_LINE=$(grep "Average Serialization Speedup:" benchmark_results_m${{ matrix.marshmallow-version }}.txt)
+          if [ -z "$SPEEDUP_LINE" ]; then
+            echo "❌ Could not find speedup summary in benchmark results"
+            cat benchmark_results_m${{ matrix.marshmallow-version }}.txt
+            exit 1
+          fi
+
+          # Extract the numeric speedup value (e.g., "2.06x" -> "2.06")
+          SPEEDUP=$(echo "$SPEEDUP_LINE" | sed -E 's/.*: ([0-9.]+)x.*/\1/')
+          echo "Detected average serialization speedup: ${SPEEDUP}x"
+          echo "Full line: $SPEEDUP_LINE"
 
           # Fail if speedup is less than 2.0x (indicating regression)
           if (( $(echo "$SPEEDUP < 2.0" | bc -l) )); then
-            echo "❌ Performance regression detected! Speedup ${SPEEDUP}x is below 2.0x threshold"
+            echo "❌ Performance regression detected! Average speedup ${SPEEDUP}x is below 2.0x threshold"
             exit 1
           else
-            echo "✅ Performance check passed: ${SPEEDUP}x speedup"
+            echo "✅ Performance check passed: ${SPEEDUP}x average speedup"
           fi
 
       - name: Upload benchmark results
@@ -87,7 +98,10 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --group dev --group marshmallow3
+        run: |
+          uv sync --group dev --group marshmallow3
+          # Install package in editable mode to register entry points
+          uv pip install -e .
 
       - name: Run profiling benchmark
         run: |
