@@ -59,7 +59,7 @@ base_unit = __import__('datetime').timedelta(**{{{precision!r}: 1}})
                 # Get the unit mapping from the field at compile time
                 unit_var = code.add_variable(
                     f"field__{attr_name}__unit",
-                    field._unit_to_microseconds_mapping[precision],
+                    field._unit_to_microseconds_mapping[precision],  # type: ignore
                 )
                 code += f"""
 microseconds = marshmallow.utils.timedelta_to_microseconds({value_variable_name})

@@ -319,7 +319,7 @@ def test_enum_serialization_matches_marshmallow_invalid_value(value: object) -> 
 
     # Check that marshmallow raises AttributeError
     with pytest.raises(AttributeError):
-        field._serialize(value, "attr", object())  # type: ignore
+        field._serialize(value, "attr", object())  # type: ignore[unused-type-ignore-comment]
 
     # Check that the inliner also raises AttributeError
     with pytest.raises(AttributeError):
