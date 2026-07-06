@@ -12,7 +12,10 @@ def is_overridden(instance_func: MethodType, class_func: Callable[..., Any]) -> 
 
 
 def is_property_overridden(instance: Any, prop_name: str, base_class: type) -> bool:
-    """Check if a property getter has been overridden in the instance's class.
+    """Check if a property getter has been overridden in the instance's class or ancestors.
+
+    This checks if the property's behavior differs from the base_class version,
+    using Python's normal attribute lookup through the MRO.
 
     Args:
         instance: The field instance
@@ -20,22 +23,34 @@ def is_property_overridden(instance: Any, prop_name: str, base_class: type) -> b
         base_class: The base class to compare against (e.g., Field)
 
     Returns:
-        True if the property getter has been overridden, False otherwise
+        True if the property getter has been overridden anywhere in the MRO, False otherwise
     """
-    # Check if this class (not parent) defines the property
-    if prop_name not in type(instance).__dict__:
+    instance_class = type(instance)
+
+    # Get the property from base class
+    base_prop = base_class.__dict__.get(prop_name)
+    if base_prop is None:
+        # Base class doesn't have this property, so check if instance class has it
+        try:
+            instance_attr = getattr(instance_class, prop_name)
+            return isinstance(instance_attr, property)
+        except AttributeError:
+            return False
+
+    # Get the property from instance class (using normal MRO lookup)
+    try:
+        instance_prop = getattr(instance_class, prop_name)
+    except AttributeError:
+        # Property not found in instance class hierarchy
         return False
 
-    instance_prop = type(instance).__dict__[prop_name]
-    base_prop = base_class.__dict__.get(prop_name)
-
-    # If base class doesn't have this property, any definition is an override
-    if base_prop is None:
-        return isinstance(instance_prop, property)
-
-    # Compare the getter functions
+    # Compare the getter functions if both are properties
     if isinstance(instance_prop, property) and isinstance(base_prop, property):
         return instance_prop.fget is not base_prop.fget
 
-    # Different types means it's overridden
-    return True
+    # If instance has something but it's not a property, it's overridden
+    if not isinstance(instance_prop, property) and isinstance(base_prop, property):
+        return True
+
+    # Other cases (shouldn't normally happen)
+    return False
