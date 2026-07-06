@@ -168,14 +168,25 @@ class Registry[T, **P]:
             context,
         )
 
-    def find(self, *args: P.args, silent: bool = False, **kwargs: P.kwargs) -> T:
+    def find(self, *args: P.args, **kwargs: P.kwargs) -> T:
         """Find the first factory matching the given arguments.
-
-        Args:
-            silent: If True, don't log warning when no factory matches (default False)
 
         Raises KeyError with detailed context if no factory matches.
         """
+        return self._find_impl(args, kwargs, silent=False)
+
+    def try_find(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        """Find the first factory matching the given arguments (silent mode).
+
+        Like find() but doesn't log warnings when no factory matches.
+        Useful when checking for optional field-specific handlers.
+
+        Raises KeyError without logging if no factory matches.
+        """
+        return self._find_impl(args, kwargs, silent=True)
+
+    def _find_impl(self, args: tuple[Any, ...], kwargs: dict[str, Any], silent: bool) -> T:
+        """Internal implementation of find with silent option."""
         for factory in self.factories:
             if (ret := factory.find(*args, **kwargs)) is not None:
                 return ret
