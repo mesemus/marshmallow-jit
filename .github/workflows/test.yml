@@ -34,11 +34,7 @@ jobs:
 
       - name: Install dependencies (Marshmallow ${{ matrix.marshmallow-version }})
         run: |
-          if [ "${{ matrix.marshmallow-version }}" = "3" ]; then
-            uv sync --group dev --group marshmallow3
-          else
-            uv sync --group dev --group marshmallow4
-          fi
+          uv sync --group dev --group marshmallow${{ matrix.marshmallow-version }}
           # Install package in editable mode to register entry points
           uv pip install -e .
 

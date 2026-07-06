@@ -23,7 +23,7 @@
 ## Project Structure
 
 ```
-torched-marshmallow/
+marshmallow-jit/
 ├── marshmallow_jit/           # Main library package
 │   ├── __init__.py
 │   ├── config.py              # Configuration constants

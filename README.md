@@ -1,8 +1,8 @@
 # marshmallow-jit
 
-[![Tests](https://github.com/mesemus/torched-marshmallow/actions/workflows/test.yml/badge.svg)](https://github.com/mesemus/torched-marshmallow/actions/workflows/test.yml)
-[![CI - Full Matrix](https://github.com/mesemus/torched-marshmallow/actions/workflows/ci.yml/badge.svg)](https://github.com/mesemus/torched-marshmallow/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/mesemus/torched-marshmallow/branch/main/graph/badge.svg)](https://codecov.io/gh/mesemus/torched-marshmallow)
+[![Tests](https://github.com/mesemus/marshmallow-jit/actions/workflows/test.yml/badge.svg)](https://github.com/mesemus/marshmallow-jit/actions/workflows/test.yml)
+[![CI - Full Matrix](https://github.com/mesemus/marshmallow-jit/actions/workflows/ci.yml/badge.svg)](https://github.com/mesemus/marshmallow-jit/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/mesemus/marshmallow-jit/branch/main/graph/badge.svg)](https://codecov.io/gh/mesemus/marshmallow-jit)
 [![Python Version](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![Marshmallow](https://img.shields.io/badge/marshmallow-3%20%7C%204-green.svg)](https://marshmallow.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

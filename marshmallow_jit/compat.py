@@ -56,21 +56,10 @@ if _MARSHMALLOW_MAJOR_VERSION == 3:
     )
 else:
     # Marshmallow 4 - provide compatibility wrappers
-    def from_iso_datetime(value: str) -> datetime.datetime:
-        """Parse ISO 8601 datetime string."""
-        return datetime.datetime.fromisoformat(value)
-
-    def from_iso_date(value: str) -> datetime.date:
-        """Parse ISO 8601 date string."""
-        return datetime.date.fromisoformat(value)
-
-    def from_iso_time(value: str) -> datetime.time:
-        """Parse ISO 8601 time string."""
-        return datetime.time.fromisoformat(value)
-
-    def from_rfc(value: str) -> datetime.datetime:
-        """Parse RFC 822/2822 datetime string."""
-        return parsedate_to_datetime(value)
+    from_iso_datetime = datetime.datetime.fromisoformat
+    from_iso_date = datetime.date.fromisoformat
+    from_iso_time = datetime.time.fromisoformat
+    from_rfc = parsedate_to_datetime
 
 
 __all__ = [
