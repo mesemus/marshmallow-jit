@@ -7,18 +7,26 @@ handling differences in import paths and available features.
 """
 
 import datetime
+import sys
 from email.utils import parsedate_to_datetime
+from typing import Any
 
-# Try marshmallow 4 first (constants at package root)
-try:
-    from marshmallow import EXCLUDE, INCLUDE, RAISE
+from marshmallow import EXCLUDE, INCLUDE, RAISE
+from marshmallow.fields import Field
 
-    _MARSHMALLOW_MAJOR_VERSION = 4
-except ImportError:
-    # Fall back to marshmallow 3 (constants in utils)
-    from marshmallow.utils import EXCLUDE, INCLUDE, RAISE
-
-    _MARSHMALLOW_MAJOR_VERSION = 3
+# Detect marshmallow version by checking if Field is subscriptable (generic)
+# In v3: Field is not generic
+# In v4: Field is generic (Field[T])
+if sys.version_info >= (3, 9):
+    # Python 3.9+ has better support for checking generic types
+    try:
+        _ = Field[Any]
+        _MARSHMALLOW_MAJOR_VERSION = 4
+    except TypeError:
+        _MARSHMALLOW_MAJOR_VERSION = 3
+else:
+    # Fallback for older Python versions
+    _MARSHMALLOW_MAJOR_VERSION = 4 if hasattr(Field, "__class_getitem__") else 3
 
 # In marshmallow 4, the context parameter was removed from Schema.__init__()
 # Context is now completely removed from the API
@@ -28,11 +36,19 @@ HAS_CONTEXT_PARAM = _MARSHMALLOW_MAJOR_VERSION == 3
 # TimeDelta always uses float in v4
 HAS_TIMEDELTA_SERIALIZATION_TYPE = _MARSHMALLOW_MAJOR_VERSION == 3
 
+# Type alias for Field that works in both marshmallow 3 and 4
+# In v3: Field is not generic, so we use Field directly
+# In v4: Field is generic, so we use Field[Any]
+if _MARSHMALLOW_MAJOR_VERSION == 3:
+    MAField = Field  # type: ignore[misc]
+else:
+    MAField = Field[Any]
+
 # Temporal parsing functions were moved in marshmallow 4
 # In v3: marshmallow.utils.from_iso_datetime, from_iso_date, from_iso_time, from_rfc
 # In v4: Uses built-in datetime.fromisoformat and email.utils.parsedate_to_datetime
 if _MARSHMALLOW_MAJOR_VERSION == 3:
-    from marshmallow.utils import (
+    from marshmallow.utils import (  # type: ignore[attr-defined]
         from_iso_date,
         from_iso_datetime,
         from_iso_time,
@@ -68,4 +84,5 @@ __all__ = [
     "from_iso_date",
     "from_iso_time",
     "from_rfc",
+    "MAField",
 ]

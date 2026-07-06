@@ -5,8 +5,8 @@
 from typing import override
 
 from marshmallow import Schema, missing
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 
@@ -31,7 +31,7 @@ class DictAccessor(ValueAccessor):
         attr_name: str,
         check_key: str,
         field_variable_name: str,
-        field: Field,
+        field: MAField,
         context: Context,
     ) -> None:
         if "." in check_key:

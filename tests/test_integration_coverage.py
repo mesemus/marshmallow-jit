@@ -6,8 +6,7 @@ All tests compare JIT behavior with plain marshmallow to ensure exact equivalenc
 
 import ipaddress
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -1164,7 +1163,7 @@ class TestPythonCodeGeneration:
 
         test_uuid = uuid.uuid4()
         test_data = {
-            "when": datetime(2023, 1, 1, 12, 0, tzinfo=timezone.utc),
+            "when": datetime(2023, 1, 1, 12, 0, tzinfo=UTC),
             "duration": timedelta(hours=2),
             "ip": ipaddress.IPv4Address("192.168.1.1"),
             "uuid_field": test_uuid,

@@ -5,10 +5,10 @@
 from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
-from marshmallow.fields import Field
 from marshmallow.fields import TimeDelta as TimeDeltaField
 
 from marshmallow_jit.compat import HAS_TIMEDELTA_SERIALIZATION_TYPE
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 

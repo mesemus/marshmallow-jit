@@ -5,8 +5,8 @@
 from typing import TYPE_CHECKING, override
 
 from marshmallow import fields as marshmallow_fields
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.config import FAIL_ON_UNKNOWN_FIELD_TYPE
 from marshmallow_jit.jit.accessors.base import ValueAccessor
 from marshmallow_jit.jit.accessors.dict import DictAccessor

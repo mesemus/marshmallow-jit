@@ -5,8 +5,9 @@
 from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
-from marshmallow.fields import Field, Integer
+from marshmallow.fields import Integer
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 from marshmallow_jit.utils import is_overridden

@@ -5,8 +5,8 @@
 from typing import ClassVar, override
 
 from marshmallow import Schema
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.registry import Factory
 
 from .base import ValueSetter

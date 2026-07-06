@@ -4,8 +4,7 @@ import datetime as dt
 import decimal
 from typing import Any
 
-import pytest
-from marshmallow import Schema, ValidationError, fields, post_load, pre_load
+from marshmallow import Schema, fields, post_load, pre_load
 
 from marshmallow_jit.schema import jit_schema
 
