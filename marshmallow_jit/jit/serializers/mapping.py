@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, override
 
 from marshmallow import fields as marshmallow_fields
+from marshmallow.fields import Field as MarshmallowField
 
 from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.config import FAIL_ON_UNKNOWN_FIELD_TYPE
@@ -334,8 +335,10 @@ class BaseSchemaDeserializer(SchemaDeserializer):
                                         )
                                     """
                                     # Call _validate only if needed (compile-time check)
-                                    has_custom_validate = is_overridden(field_obj._validate, Field._validate)
-                                    has_custom_validate_all = is_property_overridden(field_obj, "_validate_all", Field)
+                                    has_custom_validate = is_overridden(field_obj._validate, MarshmallowField._validate)
+                                    has_custom_validate_all = is_property_overridden(
+                                        field_obj, "_validate_all", MarshmallowField
+                                    )
                                     has_validators = bool(field_obj.validators)
 
                                     if has_custom_validate or has_custom_validate_all or has_validators:

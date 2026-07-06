@@ -27,7 +27,7 @@ def load_or_error(schema: Schema, data: Any) -> tuple[str, Any]:
         return ("error", (type(e), str(e), repr(e)))
 
 
-def build_plain_and_jit_schemas(schema_class):
+def build_plain_and_jit_schemas(schema_class: type[Schema]) -> tuple[Schema, Schema]:
     """Build plain and JIT versions of a schema from schema class definition.
 
     The schema_class should be a plain Schema (not yet JIT-compiled).
@@ -42,7 +42,7 @@ def build_plain_and_jit_schemas(schema_class):
 class TestDictCornerCases:
     """Test corner cases for Dict field serialization/deserialization."""
 
-    def test_dict_with_none_values_serialization(self):
+    def test_dict_with_none_values_serialization(self) -> None:
         """Test Dict handles None values correctly during serialization."""
 
         class TestSchema(Schema):
@@ -57,7 +57,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_none_values_deserialization(self):
+    def test_dict_with_none_values_deserialization(self) -> None:
         """Test Dict handles None values correctly during deserialization."""
 
         class TestSchema(Schema):
@@ -73,7 +73,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_empty_dict_serialization(self):
+    def test_dict_with_empty_dict_serialization(self) -> None:
         """Test Dict handles empty dict correctly during serialization."""
 
         class TestSchema(Schema):
@@ -88,7 +88,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_empty_dict_deserialization(self):
+    def test_dict_with_empty_dict_deserialization(self) -> None:
         """Test Dict handles empty dict correctly during deserialization."""
 
         class TestSchema(Schema):
@@ -103,7 +103,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_nested_dicts_serialization(self):
+    def test_dict_with_nested_dicts_serialization(self) -> None:
         """Test Dict with nested dict values during serialization."""
 
         class TestSchema(Schema):
@@ -118,7 +118,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_nested_dicts_deserialization(self):
+    def test_dict_with_nested_dicts_deserialization(self) -> None:
         """Test Dict with nested dict values during deserialization."""
 
         class TestSchema(Schema):
@@ -133,7 +133,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_tuple_keys_serialization(self):
+    def test_dict_with_tuple_keys_serialization(self) -> None:
         """Test Dict with tuple keys during serialization."""
 
         class TestSchema(Schema):
@@ -148,7 +148,7 @@ class TestDictCornerCases:
 
         assert jit_result == plain_result
 
-    def test_dict_with_tuple_keys_deserialization(self):
+    def test_dict_with_tuple_keys_deserialization(self) -> None:
         """Test Dict with tuple keys during deserialization."""
 
         class TestSchema(Schema):
@@ -168,7 +168,7 @@ class TestDictCornerCases:
 class TestListCornerCases:
     """Test corner cases for List field serialization/deserialization."""
 
-    def test_list_with_none_elements_serialization(self):
+    def test_list_with_none_elements_serialization(self) -> None:
         """Test List handles None elements correctly during serialization."""
 
         class TestSchema(Schema):
@@ -183,7 +183,7 @@ class TestListCornerCases:
 
         assert jit_result == plain_result
 
-    def test_list_with_none_elements_deserialization(self):
+    def test_list_with_none_elements_deserialization(self) -> None:
         """Test List handles None elements correctly during deserialization."""
 
         class TestSchema(Schema):
@@ -199,7 +199,7 @@ class TestListCornerCases:
 
         assert jit_result == plain_result
 
-    def test_list_with_empty_list_serialization(self):
+    def test_list_with_empty_list_serialization(self) -> None:
         """Test List handles empty list correctly during serialization."""
 
         class TestSchema(Schema):
@@ -214,7 +214,7 @@ class TestListCornerCases:
 
         assert jit_result == plain_result
 
-    def test_list_with_empty_list_deserialization(self):
+    def test_list_with_empty_list_deserialization(self) -> None:
         """Test List handles empty list correctly during deserialization."""
 
         class TestSchema(Schema):
@@ -229,7 +229,7 @@ class TestListCornerCases:
 
         assert jit_result == plain_result
 
-    def test_list_with_generator_serialization(self):
+    def test_list_with_generator_serialization(self) -> None:
         """Test List handles generator correctly during serialization."""
 
         class TestSchema(Schema):
@@ -246,7 +246,7 @@ class TestListCornerCases:
 
         assert jit_result == plain_result
 
-    def test_list_with_tuple_serialization(self):
+    def test_list_with_tuple_serialization(self) -> None:
         """Test List handles tuple correctly during serialization."""
 
         class TestSchema(Schema):
@@ -261,7 +261,7 @@ class TestListCornerCases:
 
         assert jit_result == plain_result
 
-    def test_list_with_tuple_deserialization(self):
+    def test_list_with_tuple_deserialization(self) -> None:
         """Test List handles tuple correctly during deserialization."""
 
         class TestSchema(Schema):
@@ -280,7 +280,7 @@ class TestListCornerCases:
 class TestNestedCornerCases:
     """Test corner cases for Nested field serialization/deserialization."""
 
-    def test_nested_with_none_serialization(self):
+    def test_nested_with_none_serialization(self) -> None:
         """Test Nested handles None correctly during serialization."""
 
         class InnerSchema(Schema):
@@ -298,7 +298,7 @@ class TestNestedCornerCases:
 
         assert jit_result == plain_result
 
-    def test_nested_with_none_deserialization(self):
+    def test_nested_with_none_deserialization(self) -> None:
         """Test Nested handles None correctly during deserialization."""
 
         class InnerSchema(Schema):
@@ -316,7 +316,7 @@ class TestNestedCornerCases:
 
         assert jit_result == plain_result
 
-    def test_nested_many_with_empty_list_serialization(self):
+    def test_nested_many_with_empty_list_serialization(self) -> None:
         """Test Nested with many=True handles empty list during serialization."""
 
         class InnerSchema(Schema):
@@ -334,7 +334,7 @@ class TestNestedCornerCases:
 
         assert jit_result == plain_result
 
-    def test_nested_many_with_empty_list_deserialization(self):
+    def test_nested_many_with_empty_list_deserialization(self) -> None:
         """Test Nested with many=True handles empty list during deserialization."""
 
         class InnerSchema(Schema):
@@ -352,7 +352,7 @@ class TestNestedCornerCases:
 
         assert jit_result == plain_result
 
-    def test_deeply_nested_schemas_serialization(self):
+    def test_deeply_nested_schemas_serialization(self) -> None:
         """Test deeply nested schemas during serialization."""
 
         class Level3Schema(Schema):
@@ -376,7 +376,7 @@ class TestNestedCornerCases:
 
         assert jit_result == plain_result
 
-    def test_deeply_nested_schemas_deserialization(self):
+    def test_deeply_nested_schemas_deserialization(self) -> None:
         """Test deeply nested schemas during deserialization."""
 
         class Level3Schema(Schema):
@@ -404,7 +404,7 @@ class TestNestedCornerCases:
 class TestFieldValidationCornerCases:
     """Test corner cases for field validation."""
 
-    def test_required_field_with_none_serialization(self):
+    def test_required_field_with_none_serialization(self) -> None:
         """Test required field with None value during serialization."""
 
         class TestSchema(Schema):
@@ -419,7 +419,7 @@ class TestFieldValidationCornerCases:
 
         assert jit_result == plain_result
 
-    def test_required_field_missing_deserialization(self):
+    def test_required_field_missing_deserialization(self) -> None:
         """Test required field missing during deserialization."""
 
         class TestSchema(Schema):
@@ -434,7 +434,7 @@ class TestFieldValidationCornerCases:
 
         assert jit_result == plain_result
 
-    def test_allow_none_with_none_serialization(self):
+    def test_allow_none_with_none_serialization(self) -> None:
         """Test allow_none=True with None value during serialization."""
 
         class TestSchema(Schema):
@@ -449,7 +449,7 @@ class TestFieldValidationCornerCases:
 
         assert jit_result == plain_result
 
-    def test_allow_none_with_none_deserialization(self):
+    def test_allow_none_with_none_deserialization(self) -> None:
         """Test allow_none=True with None value during deserialization."""
 
         class TestSchema(Schema):
@@ -464,7 +464,7 @@ class TestFieldValidationCornerCases:
 
         assert jit_result == plain_result
 
-    def test_field_with_dump_default_none_serialization(self):
+    def test_field_with_dump_default_none_serialization(self) -> None:
         """Test field with dump_default=None during serialization."""
 
         class TestSchema(Schema):
@@ -479,7 +479,7 @@ class TestFieldValidationCornerCases:
 
         assert jit_result == plain_result
 
-    def test_field_with_load_default_deserialization(self):
+    def test_field_with_load_default_deserialization(self) -> None:
         """Test field with load_default during deserialization."""
 
         class TestSchema(Schema):
@@ -498,7 +498,7 @@ class TestFieldValidationCornerCases:
 class TestSpecialCharactersInKeys:
     """Test schemas with special characters in field names."""
 
-    def test_field_with_spaces_in_data_key_serialization(self):
+    def test_field_with_spaces_in_data_key_serialization(self) -> None:
         """Test field with spaces in data_key during serialization."""
 
         class TestSchema(Schema):
@@ -513,7 +513,7 @@ class TestSpecialCharactersInKeys:
 
         assert jit_result == plain_result
 
-    def test_field_with_spaces_in_data_key_deserialization(self):
+    def test_field_with_spaces_in_data_key_deserialization(self) -> None:
         """Test field with spaces in data_key during deserialization."""
 
         class TestSchema(Schema):
@@ -528,7 +528,7 @@ class TestSpecialCharactersInKeys:
 
         assert jit_result == plain_result
 
-    def test_field_with_special_chars_in_data_key_serialization(self):
+    def test_field_with_special_chars_in_data_key_serialization(self) -> None:
         """Test field with special characters in data_key during serialization."""
 
         class TestSchema(Schema):
@@ -543,7 +543,7 @@ class TestSpecialCharactersInKeys:
 
         assert jit_result == plain_result
 
-    def test_field_with_special_chars_in_data_key_deserialization(self):
+    def test_field_with_special_chars_in_data_key_deserialization(self) -> None:
         """Test field with special characters in data_key during deserialization."""
 
         class TestSchema(Schema):
@@ -562,7 +562,7 @@ class TestSpecialCharactersInKeys:
 class TestBoundaryValues:
     """Test boundary values for various field types."""
 
-    def test_integer_max_value_serialization(self):
+    def test_integer_max_value_serialization(self) -> None:
         """Test Integer with very large values during serialization."""
 
         class TestSchema(Schema):
@@ -577,7 +577,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_integer_max_value_deserialization(self):
+    def test_integer_max_value_deserialization(self) -> None:
         """Test Integer with very large values during deserialization."""
 
         class TestSchema(Schema):
@@ -592,7 +592,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_decimal_precision_serialization(self):
+    def test_decimal_precision_serialization(self) -> None:
         """Test Decimal with high precision during serialization."""
 
         class TestSchema(Schema):
@@ -607,7 +607,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_decimal_precision_deserialization(self):
+    def test_decimal_precision_deserialization(self) -> None:
         """Test Decimal with high precision during deserialization."""
 
         class TestSchema(Schema):
@@ -622,7 +622,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_string_with_unicode_serialization(self):
+    def test_string_with_unicode_serialization(self) -> None:
         """Test String with unicode characters during serialization."""
 
         class TestSchema(Schema):
@@ -637,7 +637,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_string_with_unicode_deserialization(self):
+    def test_string_with_unicode_deserialization(self) -> None:
         """Test String with unicode characters during deserialization."""
 
         class TestSchema(Schema):
@@ -652,7 +652,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_datetime_with_microseconds_serialization(self):
+    def test_datetime_with_microseconds_serialization(self) -> None:
         """Test DateTime with microseconds during serialization."""
 
         class TestSchema(Schema):
@@ -667,7 +667,7 @@ class TestBoundaryValues:
 
         assert jit_result == plain_result
 
-    def test_datetime_with_microseconds_deserialization(self):
+    def test_datetime_with_microseconds_deserialization(self) -> None:
         """Test DateTime with microseconds during deserialization."""
 
         class TestSchema(Schema):
@@ -686,14 +686,14 @@ class TestBoundaryValues:
 class TestSchemaHooks:
     """Test that schema hooks work correctly with JIT."""
 
-    def test_post_load_hook(self):
+    def test_post_load_hook(self) -> None:
         """Test post_load hook is called correctly."""
 
         class TestSchema(Schema):
             value = fields.Int()
 
             @post_load
-            def add_marker(self, data, **kwargs):
+            def add_marker(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data["marker"] = "processed"
                 return data
 
@@ -706,14 +706,14 @@ class TestSchemaHooks:
 
         assert jit_result == plain_result
 
-    def test_pre_load_hook(self):
+    def test_pre_load_hook(self) -> None:
         """Test pre_load hook is called correctly."""
 
         class TestSchema(Schema):
             value = fields.Int()
 
             @pre_load
-            def double_value(self, data, **kwargs):
+            def double_value(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 if "value" in data:
                     data["value"] = data["value"] * 2
                 return data
@@ -733,7 +733,7 @@ class TestSchemaHooks:
 class TestMixedFieldTypes:
     """Test schemas with mixed field types."""
 
-    def test_schema_with_all_field_types_serialization(self):
+    def test_schema_with_all_field_types_serialization(self) -> None:
         """Test schema with many different field types during serialization."""
 
         class TestSchema(Schema):
@@ -764,7 +764,7 @@ class TestMixedFieldTypes:
 
         assert jit_result == plain_result
 
-    def test_schema_with_all_field_types_deserialization(self):
+    def test_schema_with_all_field_types_deserialization(self) -> None:
         """Test schema with many different field types during deserialization."""
 
         class TestSchema(Schema):

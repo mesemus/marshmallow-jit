@@ -5,9 +5,10 @@ All tests compare JIT behavior with plain marshmallow to ensure exact equivalenc
 """
 
 import ipaddress
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, override
 
 import pytest
 from marshmallow import Schema, ValidationError, fields, post_dump, post_load, pre_load
@@ -15,14 +16,14 @@ from marshmallow import Schema, ValidationError, fields, post_dump, post_load, p
 from marshmallow_jit.schema import JITSchemaMixin, jit_schema
 
 
-def compare_results(jit_result, plain_result, test_name):
+def compare_results(jit_result: Any, plain_result: Any, test_name: str) -> None:
     """Helper to compare JIT and plain marshmallow results."""
     assert jit_result == plain_result, (
         f"{test_name}: JIT result differs from plain marshmallow\nJIT: {jit_result}\nPlain: {plain_result}"
     )
 
 
-def compare_errors(jit_error, plain_error, test_name):
+def compare_errors(jit_error: ValidationError, plain_error: ValidationError, test_name: str) -> None:
     """Helper to compare JIT and plain marshmallow validation errors."""
     assert jit_error.messages == plain_error.messages, (
         f"{test_name}: JIT error messages differ from plain marshmallow\n"
@@ -34,7 +35,7 @@ def compare_errors(jit_error, plain_error, test_name):
 class TestMultiSerializerDispatch:
     """Test predicate-based dispatcher with multiple serializers."""
 
-    def test_hybrid_serializer_with_dict_and_object(self):
+    def test_hybrid_serializer_with_dict_and_object(self) -> None:
         """Test hybrid serializer handling both dicts and objects."""
 
         @dataclass
@@ -72,7 +73,7 @@ class TestMultiSerializerDispatch:
         jit_obj_result = jit_schema_instance.dump(Person(name="Bob", age=25))
         compare_results(jit_obj_result, plain_obj_result, "hybrid object")
 
-    def test_multi_serializer_with_predicates(self):
+    def test_multi_serializer_with_predicates(self) -> None:
         """Test multi-serializer configuration with predicate functions."""
 
         @dataclass
@@ -119,7 +120,7 @@ class TestMultiSerializerDispatch:
         jit_obj_result = jit_schema_instance.dump(User(username="bob", email="bob@example.com"))
         compare_results(jit_obj_result, plain_obj_result, "predicate object")
 
-    def test_multi_serializer_with_fallback(self):
+    def test_multi_serializer_with_fallback(self) -> None:
         """Test multi-serializer with True as fallback predicate."""
 
         @dataclass
@@ -157,7 +158,7 @@ class TestMultiSerializerDispatch:
         jit_obj_result = jit_schema_instance.dump(Item(name="Item2"))
         compare_results(jit_obj_result, plain_obj_result, "fallback object")
 
-    def test_dispatcher_no_match_raises_error(self):
+    def test_dispatcher_no_match_raises_error(self) -> None:
         """Test that dispatcher raises error when no predicate matches."""
 
         @dataclass
@@ -211,7 +212,7 @@ class TestMultiSerializerDispatch:
 class TestIPFieldCoverage:
     """Test IP address fields with exploded/compressed options."""
 
-    def test_ip_field_exploded_serialization(self):
+    def test_ip_field_exploded_serialization(self) -> None:
         """Test IP field serialization with exploded format."""
 
         # Plain marshmallow
@@ -231,7 +232,7 @@ class TestIPFieldCoverage:
 
         compare_results(jit_result, plain_result, "IPv6 exploded")
 
-    def test_ip_field_compressed_serialization(self):
+    def test_ip_field_compressed_serialization(self) -> None:
         """Test IP field serialization with compressed format (default)."""
 
         # Plain marshmallow
@@ -251,7 +252,7 @@ class TestIPFieldCoverage:
 
         compare_results(jit_result, plain_result, "IPv6 compressed")
 
-    def test_ip_interface_field_exploded(self):
+    def test_ip_interface_field_exploded(self) -> None:
         """Test IP interface field with exploded format."""
 
         # Plain marshmallow
@@ -275,11 +276,12 @@ class TestIPFieldCoverage:
 class TestCustomValidationAndProperties:
     """Test custom field validation and property overrides."""
 
-    def test_field_with_custom_validate_method(self):
+    def test_field_with_custom_validate_method(self) -> None:
         """Test field with overridden _validate method."""
 
         class CustomIntField(fields.Int):
-            def _validate(self, value):
+            @override
+            def _validate(self, value: Any) -> None:
                 super()._validate(value)
                 if value < 0:
                     raise ValidationError("Must be non-negative")
@@ -318,7 +320,7 @@ class TestCustomValidationAndProperties:
         assert plain_error is not None and jit_error is not None
         compare_errors(jit_error, plain_error, "custom validate invalid")
 
-    def test_field_with_validators_list(self):
+    def test_field_with_validators_list(self) -> None:
         """Test field with validators in the validators list."""
         from marshmallow.validate import Length
 
@@ -356,7 +358,7 @@ class TestCustomValidationAndProperties:
         assert plain_error is not None and jit_error is not None
         compare_errors(jit_error, plain_error, "validators list too short")
 
-    def test_method_field_serialization_and_deserialization(self):
+    def test_method_field_serialization_and_deserialization(self) -> None:
         """Test Method field for both directions."""
 
         # Plain marshmallow
@@ -364,10 +366,10 @@ class TestCustomValidationAndProperties:
             name = fields.Str()
             name_upper = fields.Method("get_name_upper", deserialize="load_name_upper")
 
-            def get_name_upper(self, obj):
+            def get_name_upper(self, obj: dict[str, Any]) -> str:
                 return obj["name"].upper()
 
-            def load_name_upper(self, value):
+            def load_name_upper(self, value: str) -> str:
                 return value.lower()
 
         plain_schema = UserSchemaPlain()
@@ -380,10 +382,10 @@ class TestCustomValidationAndProperties:
             name = fields.Str()
             name_upper = fields.Method("get_name_upper", deserialize="load_name_upper")
 
-            def get_name_upper(self, obj):
+            def get_name_upper(self, obj: dict[str, Any]) -> str:
                 return obj["name"].upper()
 
-            def load_name_upper(self, value):
+            def load_name_upper(self, value: str) -> str:
                 return value.lower()
 
         jit_schema_instance = UserSchema()
@@ -393,13 +395,13 @@ class TestCustomValidationAndProperties:
         compare_results(jit_dump, plain_dump, "method field dump")
         compare_results(jit_load, plain_load, "method field load")
 
-    def test_function_field_with_custom_functions(self):
+    def test_function_field_with_custom_functions(self) -> None:
         """Test Function field with serialize/deserialize functions."""
 
-        def get_doubled(obj):
+        def get_doubled(obj: dict[str, Any]) -> int:
             return obj.get("doubled", 0) * 2
 
-        def set_halved(value):
+        def set_halved(value: int) -> int:
             return value // 2
 
         # Plain marshmallow
@@ -428,7 +430,7 @@ class TestCustomValidationAndProperties:
 class TestHybridAccessor:
     """Test hybrid accessor for dict/object access."""
 
-    def test_hybrid_accessor_with_nested_attributes(self):
+    def test_hybrid_accessor_with_nested_attributes(self) -> None:
         """Test hybrid accessor with dotted attribute names."""
 
         @dataclass
@@ -472,7 +474,7 @@ class TestHybridAccessor:
 class TestInstanceAccessor:
     """Test instance accessor for object serialization."""
 
-    def test_instance_accessor_with_nested_objects(self):
+    def test_instance_accessor_with_nested_objects(self) -> None:
         """Test instance accessor with nested object attributes."""
 
         @dataclass
@@ -509,7 +511,7 @@ class TestInstanceAccessor:
 
         compare_results(jit_result, plain_result, "instance nested objects")
 
-    def test_instance_accessor_serializes_successfully(self):
+    def test_instance_accessor_serializes_successfully(self) -> None:
         """Test instance accessor with various attribute access patterns."""
 
         @dataclass
@@ -546,7 +548,7 @@ class TestInstanceAccessor:
 class TestDictAccessorEdgeCases:
     """Test dict accessor edge cases."""
 
-    def test_dict_accessor_with_load_default(self):
+    def test_dict_accessor_with_load_default(self) -> None:
         """Test dict accessor with missing keys and load_default."""
 
         # Plain marshmallow
@@ -572,7 +574,7 @@ class TestDictAccessorEdgeCases:
 class TestSchemaHooksIntegration:
     """Test schema processing hooks with JIT compilation."""
 
-    def test_pre_load_hook_modifies_data(self):
+    def test_pre_load_hook_modifies_data(self) -> None:
         """Test that pre_load hook is called and modifies data."""
 
         # Plain marshmallow
@@ -581,7 +583,7 @@ class TestSchemaHooksIntegration:
             age = fields.Int()
 
             @pre_load
-            def uppercase_name(self, data, **kwargs):
+            def uppercase_name(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data = dict(data)
                 data["name"] = data["name"].upper()
                 return data
@@ -596,7 +598,7 @@ class TestSchemaHooksIntegration:
             age = fields.Int()
 
             @pre_load
-            def uppercase_name(self, data, **kwargs):
+            def uppercase_name(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data = dict(data)
                 data["name"] = data["name"].upper()
                 return data
@@ -606,7 +608,7 @@ class TestSchemaHooksIntegration:
 
         compare_results(jit_result, plain_result, "pre_load hook")
 
-    def test_post_load_hook_transforms_result(self):
+    def test_post_load_hook_transforms_result(self) -> None:
         """Test that post_load hook is called and transforms result."""
 
         # Plain marshmallow
@@ -615,7 +617,7 @@ class TestSchemaHooksIntegration:
             last_name = fields.Str()
 
             @post_load
-            def make_full_name(self, data, **kwargs):
+            def make_full_name(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data["full_name"] = f"{data['first_name']} {data['last_name']}"
                 return data
 
@@ -629,7 +631,7 @@ class TestSchemaHooksIntegration:
             last_name = fields.Str()
 
             @post_load
-            def make_full_name(self, data, **kwargs):
+            def make_full_name(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data["full_name"] = f"{data['first_name']} {data['last_name']}"
                 return data
 
@@ -638,7 +640,7 @@ class TestSchemaHooksIntegration:
 
         compare_results(jit_result, plain_result, "post_load hook")
 
-    def test_post_dump_hook_modifies_output(self):
+    def test_post_dump_hook_modifies_output(self) -> None:
         """Test that post_dump hook is called and modifies output."""
 
         # Plain marshmallow
@@ -647,7 +649,7 @@ class TestSchemaHooksIntegration:
             secret = fields.Str()
 
             @post_dump
-            def remove_secret(self, data, **kwargs):
+            def remove_secret(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data = dict(data)
                 data.pop("secret", None)
                 return data
@@ -662,7 +664,7 @@ class TestSchemaHooksIntegration:
             secret = fields.Str()
 
             @post_dump
-            def remove_secret(self, data, **kwargs):
+            def remove_secret(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
                 data = dict(data)
                 data.pop("secret", None)
                 return data
@@ -676,10 +678,10 @@ class TestSchemaHooksIntegration:
 class TestListFieldEdgeCases:
     """Test List field edge cases and validation."""
 
-    def test_list_field_with_generator_input(self):
+    def test_list_field_with_generator_input(self) -> None:
         """Test List field with generator input."""
 
-        def gen():
+        def gen() -> Generator[int]:
             yield 1
             yield 2
             yield 3
@@ -698,7 +700,7 @@ class TestListFieldEdgeCases:
 
         jit_schema_instance = StreamSchema()
 
-        def gen2():
+        def gen2() -> Generator[int]:
             yield 1
             yield 2
             yield 3
@@ -707,7 +709,7 @@ class TestListFieldEdgeCases:
 
         compare_results(jit_result, plain_result, "list with generator")
 
-    def test_list_field_deserialization_with_tuple_input(self):
+    def test_list_field_deserialization_with_tuple_input(self) -> None:
         """Test List field deserialization with tuple input."""
 
         # Plain marshmallow
@@ -727,7 +729,7 @@ class TestListFieldEdgeCases:
 
         compare_results(jit_result, plain_result, "list with tuple")
 
-    def test_list_field_with_non_collection_raises_error(self):
+    def test_list_field_with_non_collection_raises_error(self) -> None:
         """Test List field with non-collection input raises error."""
 
         # Plain marshmallow
@@ -761,7 +763,7 @@ class TestListFieldEdgeCases:
 class TestDictFieldEdgeCases:
     """Test Dict field edge cases."""
 
-    def test_dict_field_with_key_field_serialization(self):
+    def test_dict_field_with_key_field_serialization(self) -> None:
         """Test Dict field with key_field for key transformation."""
 
         # Plain marshmallow
@@ -781,7 +783,7 @@ class TestDictFieldEdgeCases:
 
         compare_results(jit_result, plain_result, "dict with key field dump")
 
-    def test_dict_field_with_key_field_deserialization(self):
+    def test_dict_field_with_key_field_deserialization(self) -> None:
         """Test Dict field deserialization with key transformation."""
 
         # Plain marshmallow
@@ -801,7 +803,7 @@ class TestDictFieldEdgeCases:
 
         compare_results(jit_result, plain_result, "dict with key field load")
 
-    def test_dict_field_with_invalid_key_raises_error(self):
+    def test_dict_field_with_invalid_key_raises_error(self) -> None:
         """Test Dict field with invalid key type raises error."""
 
         # Plain marshmallow
@@ -830,7 +832,7 @@ class TestDictFieldEdgeCases:
         assert plain_error is not None and jit_error is not None
         compare_errors(jit_error, plain_error, "dict invalid key")
 
-    def test_dict_field_with_non_mapping_raises_error(self):
+    def test_dict_field_with_non_mapping_raises_error(self) -> None:
         """Test Dict field with non-mapping input raises error."""
 
         # Plain marshmallow
@@ -863,7 +865,7 @@ class TestDictFieldEdgeCases:
 class TestBooleanFieldEdgeCases:
     """Test Boolean field edge cases."""
 
-    def test_boolean_field_with_truthy_string_deserialization(self):
+    def test_boolean_field_with_truthy_string_deserialization(self) -> None:
         """Test Boolean field deserialization with truthy strings."""
 
         # Plain marshmallow
@@ -889,7 +891,7 @@ class TestBooleanFieldEdgeCases:
         compare_results(jit_one, plain_one, "boolean truthy string '1'")
         compare_results(jit_int_one, plain_int_one, "boolean truthy int 1")
 
-    def test_boolean_field_with_falsy_string_deserialization(self):
+    def test_boolean_field_with_falsy_string_deserialization(self) -> None:
         """Test Boolean field deserialization with falsy strings."""
 
         # Plain marshmallow
@@ -919,7 +921,7 @@ class TestBooleanFieldEdgeCases:
 class TestDecimalFieldEdgeCases:
     """Test Decimal field edge cases."""
 
-    def test_decimal_field_serialization_and_deserialization(self):
+    def test_decimal_field_serialization_and_deserialization(self) -> None:
         """Test Decimal field round-trip."""
 
         # Plain marshmallow
@@ -939,7 +941,7 @@ class TestDecimalFieldEdgeCases:
 
         compare_results(jit_result, plain_result, "decimal load")
 
-    def test_decimal_field_as_string_serialization(self):
+    def test_decimal_field_as_string_serialization(self) -> None:
         """Test Decimal field deserialization validates correctly."""
 
         # Plain marshmallow
@@ -979,7 +981,7 @@ class TestDecimalFieldEdgeCases:
 class TestFloatFieldEdgeCases:
     """Test Float field edge cases."""
 
-    def test_float_field_serialization(self):
+    def test_float_field_serialization(self) -> None:
         """Test Float field serialization."""
 
         # Plain marshmallow
@@ -999,7 +1001,7 @@ class TestFloatFieldEdgeCases:
 
         compare_results(jit_result, plain_result, "float dump")
 
-    def test_float_field_deserialization(self):
+    def test_float_field_deserialization(self) -> None:
         """Test Float field deserialization from string."""
 
         # Plain marshmallow
@@ -1023,7 +1025,7 @@ class TestFloatFieldEdgeCases:
 class TestIntegerFieldEdgeCases:
     """Test Integer field edge cases."""
 
-    def test_integer_field_with_strict_mode(self):
+    def test_integer_field_with_strict_mode(self) -> None:
         """Test Integer field with strict=True rejects floats."""
 
         # Plain marshmallow
@@ -1059,7 +1061,7 @@ class TestIntegerFieldEdgeCases:
         assert plain_error is not None and jit_error is not None
         compare_errors(jit_error, plain_error, "int strict invalid")
 
-    def test_integer_field_deserialization_from_string(self):
+    def test_integer_field_deserialization_from_string(self) -> None:
         """Test Integer field deserialization from string."""
 
         # Plain marshmallow
@@ -1083,7 +1085,7 @@ class TestIntegerFieldEdgeCases:
 class TestNestedSchemaEdgeCases:
     """Test Nested schema edge cases."""
 
-    def test_nested_schema_with_many(self):
+    def test_nested_schema_with_many(self) -> None:
         """Test nested schema with many=True for serialization."""
 
         # Plain marshmallow
@@ -1120,7 +1122,7 @@ class TestNestedSchemaEdgeCases:
 class TestJITSchemaReuse:
     """Test JIT schema reuse and initialization."""
 
-    def test_jit_schema_reuse_different_data(self):
+    def test_jit_schema_reuse_different_data(self) -> None:
         """Test that JIT schema can be reused with different data."""
 
         # Plain marshmallow
@@ -1143,7 +1145,7 @@ class TestJITSchemaReuse:
         compare_results(jit_result1, plain_result1, "reuse first call")
         compare_results(jit_result2, plain_result2, "reuse second call")
 
-    def test_jit_applied_flag_prevents_double_compilation(self):
+    def test_jit_applied_flag_prevents_double_compilation(self) -> None:
         """Test that _jit_applied flag prevents double compilation."""
 
         class CustomSchema(JITSchemaMixin, Schema):
@@ -1156,7 +1158,7 @@ class TestJITSchemaReuse:
 class TestPythonCodeGeneration:
     """Test Python code generation utilities."""
 
-    def test_complex_schema_serialization_and_deserialization(self):
+    def test_complex_schema_serialization_and_deserialization(self) -> None:
         """Test that complex field types work correctly."""
 
         import uuid
@@ -1202,7 +1204,7 @@ class TestPythonCodeGeneration:
 class TestSchemaWithUnknownFields:
     """Test schema handling of unknown fields."""
 
-    def test_schema_unknown_exclude_serialization(self):
+    def test_schema_unknown_exclude_serialization(self) -> None:
         """Test schema with unknown=EXCLUDE excludes extra fields."""
         from marshmallow import EXCLUDE
 
@@ -1229,7 +1231,7 @@ class TestSchemaWithUnknownFields:
 
         compare_results(jit_result, plain_result, "unknown exclude dump")
 
-    def test_schema_unknown_include_serialization(self):
+    def test_schema_unknown_include_serialization(self) -> None:
         """Test schema with unknown=INCLUDE includes extra fields in load."""
         from marshmallow import INCLUDE
 
@@ -1256,7 +1258,7 @@ class TestSchemaWithUnknownFields:
 
         compare_results(jit_result, plain_result, "unknown include load")
 
-    def test_schema_unknown_raise_deserialization(self):
+    def test_schema_unknown_raise_deserialization(self) -> None:
         """Test schema with unknown=RAISE raises error on extra fields."""
         from marshmallow import RAISE
 
@@ -1296,7 +1298,7 @@ class TestSchemaWithUnknownFields:
 class TestContextPassing:
     """Test context passing through nested serialization."""
 
-    def test_context_passed_to_nested_schema(self):
+    def test_context_passed_to_nested_schema(self) -> None:
         """Test that context is passed to nested schemas."""
         import warnings
 
@@ -1308,7 +1310,11 @@ class TestContextPassing:
         if not HAS_CONTEXT_PARAM:
             pytest.skip("Context parameter removed in marshmallow 4")
 
-        from marshmallow.warnings import RemovedInMarshmallow4Warning
+        try:
+            from marshmallow.warnings import RemovedInMarshmallow4Warning  # type: ignore[unresolved-import]
+        except ImportError:
+            # Marshmallow 4 - warnings module removed
+            pytest.skip("Warnings module removed in marshmallow 4")
 
         # Suppress deprecation warnings for context parameter (testing marshmallow 3.x compatibility)
         with warnings.catch_warnings():
@@ -1321,7 +1327,7 @@ class TestContextPassing:
             class ParentSchemaPlain(Schema):
                 child = fields.Nested(ChildSchemaPlain)
 
-            plain_schema = ParentSchemaPlain(context={"uppercase": True})
+            plain_schema = ParentSchemaPlain(context={"uppercase": True})  # type: ignore[call-arg]
             plain_result = plain_schema.dump({"child": {"name": "alice"}})
 
             # JIT
@@ -1333,7 +1339,7 @@ class TestContextPassing:
             class ParentSchema(Schema):
                 child = fields.Nested(ChildSchema)
 
-            jit_schema_instance = ParentSchema(context={"uppercase": True})
+            jit_schema_instance = ParentSchema(context={"uppercase": True})  # type: ignore[call-arg]
             jit_result = jit_schema_instance.dump({"child": {"name": "alice"}})
 
             compare_results(jit_result, plain_result, "context passing")
@@ -1342,7 +1348,7 @@ class TestContextPassing:
 class TestErrorStoreIntegration:
     """Test error accumulation and reporting."""
 
-    def test_single_field_error(self):
+    def test_single_field_error(self) -> None:
         """Test that single field error is reported correctly."""
 
         # Plain marshmallow
@@ -1371,7 +1377,7 @@ class TestErrorStoreIntegration:
         assert plain_error is not None and jit_error is not None
         compare_errors(jit_error, plain_error, "single field error")
 
-    def test_nested_errors(self):
+    def test_nested_errors(self) -> None:
         """Test error reporting for nested schemas."""
 
         # Plain marshmallow

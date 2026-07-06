@@ -28,7 +28,9 @@ class NestedAttributeAccessorFactory(Factory[[Schema, str, Field], ValueAccessor
     def find(self, schema: Schema, attr_name: str, field: Field) -> ValueAccessor | None:
         if not _HAS_MARSHMALLOW_UTILS:
             return None
-        from marshmallow_utils.fields.nestedattr import NestedAttribute  # type: ignore[import-not-found]
+        from marshmallow_utils.fields.nestedattr import (
+            NestedAttribute,  # type: ignore[import-not-found,unresolved-import]
+        )
 
         if isinstance(field, NestedAttribute):
             return InstanceAccessor()

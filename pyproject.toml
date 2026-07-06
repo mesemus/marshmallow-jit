@@ -103,6 +103,7 @@ python-version = "3.14"
 
 [tool.ty.src]
 include = ["marshmallow_jit", "tests"]
+exclude = ["marshmallow_jit/compat.py"]
 
 [tool.ty.rules]
 # Enable all rules by default

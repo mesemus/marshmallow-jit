@@ -39,7 +39,7 @@ class TimeDeltaSerializationInliner(Inliner):
         with code.indent(f"if {value_variable_name} is not None"):
             if HAS_TIMEDELTA_SERIALIZATION_TYPE:
                 # Marshmallow 3: Use serialization_type
-                if field.serialization_type is int:  # type: ignore[attr-defined]
+                if field.serialization_type is int:
                     # Integer serialization: delta // unit
                     code += f"""
 base_unit = __import__('datetime').timedelta(**{{{precision!r}: 1}})
@@ -59,7 +59,7 @@ base_unit = __import__('datetime').timedelta(**{{{precision!r}: 1}})
                 # Get the unit mapping from the field at compile time
                 unit_var = code.add_variable(
                     f"field__{attr_name}__unit",
-                    field._unit_to_microseconds_mapping[precision],  # type: ignore[attr-defined]
+                    field._unit_to_microseconds_mapping[precision],
                 )
                 code += f"""
 microseconds = marshmallow.utils.timedelta_to_microseconds({value_variable_name})
@@ -98,7 +98,7 @@ class TimeDeltaDeserializationInliner(Inliner):
         with code.indent(f"if not isinstance({value_variable_name}, dt.timedelta)"):
             if HAS_TIMEDELTA_SERIALIZATION_TYPE:
                 # Marshmallow 3: Use serialization_type
-                serialization_type = field.serialization_type.__name__  # type: ignore[attr-defined]
+                serialization_type = field.serialization_type.__name__
                 if serialization_type == "int":
                     code += f"""
 try:

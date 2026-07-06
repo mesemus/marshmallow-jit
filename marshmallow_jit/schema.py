@@ -9,11 +9,11 @@ to apply JIT-compiled serialization/deserialization to marshmallow schemas.
 import dataclasses
 import types
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, Sequence, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, cast
 
 from marshmallow import Schema
 
-from marshmallow_jit.compat import EXCLUDE, HAS_CONTEXT_PARAM, INCLUDE, RAISE
+from marshmallow_jit.compat import HAS_CONTEXT_PARAM
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.setters import ValueSetter
 
@@ -110,7 +110,7 @@ class JITSchemaMixin(JITSchemaBase):
         load_only: Sequence[str] | set[str] = (),
         dump_only: Sequence[str] | set[str] = (),
         partial: bool | Sequence[str] | set[str] | None = None,
-        unknown: Literal["raise", "exclude", "include"] | str | None = None,
+        unknown: Literal["raise", "exclude", "include"] | None = None,
     ) -> None:
         # super().__init__ is a bound method, so we call it directly
         # In marshmallow 4, context parameter was removed

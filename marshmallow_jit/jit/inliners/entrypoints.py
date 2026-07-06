@@ -41,7 +41,6 @@ from marshmallow.fields import (
 )
 
 from marshmallow_jit.compat import MAField as Field
-
 from marshmallow_jit.jit.registry import Factory
 from marshmallow_jit.utils import is_overridden
 

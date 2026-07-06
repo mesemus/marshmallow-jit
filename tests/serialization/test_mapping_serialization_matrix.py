@@ -13,12 +13,12 @@ from collections.abc import Callable
 from typing import Any
 
 from marshmallow import Schema
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField
 from marshmallow_jit.schema import JITSchemaMixin
 
 
-def build_schemas(field_factory: Callable[[], Field]) -> tuple[type[Schema], type[Schema]]:
+def build_schemas(field_factory: Callable[[], MAField]) -> tuple[type[Schema], type[Schema]]:
     class PlainSchema(Schema):
         a = field_factory()
 
@@ -36,7 +36,7 @@ def dump_or_error(schema_cls: type[Schema], value: Any) -> tuple[str, Any]:
         return ("error", (type(exc), str(exc), repr(exc)))
 
 
-def test_jit_serialization_matches_plain_marshmallow(field_factory: Callable[[], Field], value: Any) -> None:
+def test_jit_serialization_matches_plain_marshmallow(field_factory: Callable[[], MAField], value: Any) -> None:
     plain_schema, jit_schema = build_schemas(field_factory)
     plain_result = dump_or_error(plain_schema, value)
     jit_result = dump_or_error(jit_schema, value)

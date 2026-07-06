@@ -34,7 +34,9 @@ from marshmallow.fields import (
     TimeDelta,
     Url,
 )
+from marshmallow.fields import Field as MarshmallowField
 
+from marshmallow_jit.compat import MAField
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.inliners.aware_datetime import AwareDateTimeSerializationInliner
 from marshmallow_jit.jit.inliners.base import Inliner
@@ -83,7 +85,7 @@ def assert_compilable(code: PythonCode, environment: dict[str, Any]) -> None:
     new_code.compile(environment)
 
 
-def generate(inliner: Inliner, field: Field, attr_name: str = "attr") -> PythonCode:
+def generate(inliner: Inliner, field: MAField, attr_name: str = "attr") -> PythonCode:
     code = PythonCode()
     context = Context()
     field_var = code.add_variable("field", field)
@@ -91,7 +93,7 @@ def generate(inliner: Inliner, field: Field, attr_name: str = "attr") -> PythonC
     return code
 
 
-def field_variable(code: PythonCode, field: Field) -> str:
+def field_variable(code: PythonCode, field: MAField) -> str:
     for name, value in code.variables.items():
         if value is field:
             return name
@@ -103,7 +105,7 @@ def only_variable(code: PythonCode) -> str:
     return name
 
 
-def run(inliner: Inliner, field: Field, value: Any, attr_name: str = "attr", obj: Any = None) -> Any:
+def run(inliner: Inliner, field: MAField, value: Any, attr_name: str = "attr", obj: Any = None) -> Any:
     """Compiles the generated code into a real function and executes it on `value`."""
     code = generate(inliner, field, attr_name)
 
@@ -118,7 +120,7 @@ def run(inliner: Inliner, field: Field, value: Any, attr_name: str = "attr", obj
     return namespace["f"](value, obj)
 
 
-def assert_matches_marshmallow(inliner: Inliner, field: Field, value: Any, obj: Any = None) -> None:
+def assert_matches_marshmallow(inliner: Inliner, field: MAField, value: Any, obj: Any = None) -> None:
     if obj is None:
         obj = object()
     assert run(inliner, field, value, obj=obj) == field._serialize(value, "attr", obj)
@@ -145,7 +147,7 @@ def test_str_serialization_inliner() -> None:
         (EmailSerializationInliner, Email),
     ],
 )
-def test_str_url_and_email_serialization_reuse_strs_code(inliner_cls: type[Inliner], field_cls: type[Field]) -> None:
+def test_str_url_and_email_serialization_reuse_strs_code(inliner_cls: type[Inliner], field_cls: type[MAField]) -> None:
     # Url and Email do not override String's _serialize, so their generated code is identical.
     code = generate(inliner_cls(), field_cls())
     assert (
@@ -165,7 +167,7 @@ def test_str_url_and_email_serialization_reuse_strs_code(inliner_cls: type[Inlin
 )
 @pytest.mark.parametrize("value", [None, "hello", b"hello", 42, "https://example.com", "a@b.com"])
 def test_str_url_and_email_serialization_matches_marshmallow(
-    inliner_cls: type[Inliner], field_cls: type[Field], value: object
+    inliner_cls: type[Inliner], field_cls: type[MAField], value: object
 ) -> None:
     assert_matches_marshmallow(inliner_cls(), field_cls(), value)
 
@@ -256,7 +258,7 @@ def test_boolean_serialization_matches_marshmallow(value: object) -> None:
 
 
 def test_raw_serialization_inliner_is_a_noop() -> None:
-    # Raw does not override _serialize (it's the base Field identity), so the value must
+    # Raw does not override _serialize (it's the base MAField identity), so the value must
     # pass through unchanged - not even a None-check.
     code = generate(RawSerializationInliner(), Raw())
     assert str(code) == ""
@@ -317,7 +319,7 @@ def test_enum_serialization_matches_marshmallow_invalid_value(value: object) -> 
 
     # Check that marshmallow raises AttributeError
     with pytest.raises(AttributeError):
-        field._serialize(value, "attr", object())
+        field._serialize(value, "attr", object())  # type: ignore
 
     # Check that the inliner also raises AttributeError
     with pytest.raises(AttributeError):
@@ -333,13 +335,15 @@ def test_enum_serialization_matches_marshmallow_invalid_value(value: object) -> 
     ],
 )
 def test_datetime_serialization_inliner_code_default_iso_format(
-    inliner_cls: type[Inliner], field_cls: type[Field]
+    inliner_cls: type[Inliner], field_cls: type[MAField]
 ) -> None:
     field = field_cls()
     code = generate(inliner_cls(), field)
     # Two variables: the field itself and the format_func
     assert len(code.variables) == 2
-    format_func_var = [name for name, val in code.variables.items() if callable(val) and not isinstance(val, Field)][0]
+    format_func_var = [
+        name for name, val in code.variables.items() if callable(val) and not isinstance(val, MarshmallowField)
+    ][0]
     assert str(code) == f"if value is not None:\n    value = {format_func_var}(value)"
     assert_compilable(code, {})
 
@@ -353,7 +357,7 @@ def test_datetime_serialization_inliner_code_default_iso_format(
     ],
 )
 def test_datetime_serialization_inliner_code_custom_strftime_format(
-    inliner_cls: type[Inliner], field_cls: type[Field]
+    inliner_cls: type[Inliner], field_cls: type[MAField]
 ) -> None:
     field = field_cls(format="%Y-%m")
     code = generate(inliner_cls(), field)
@@ -374,7 +378,7 @@ def test_datetime_serialization_inliner_code_custom_strftime_format(
 @pytest.mark.parametrize("format", ["iso", "rfc", "timestamp", "timestamp_ms", "%Y-%m-%d"])
 @pytest.mark.parametrize("naive", [True, False])
 def test_datetime_serialization_matches_marshmallow(
-    inliner_cls: type[Inliner], field_cls: type[Field], format: str, naive: bool
+    inliner_cls: type[Inliner], field_cls: type[MAField], format: str, naive: bool
 ) -> None:
     value = dt.datetime(2024, 1, 2, 3, 4, 5)
     if not naive:
@@ -405,7 +409,9 @@ def test_date_serialization_inliner_code() -> None:
     code = generate(DateSerializationInliner(), field)
     # Two variables: the field itself and the format_func
     assert len(code.variables) == 2
-    format_func_var = [name for name, val in code.variables.items() if callable(val) and not isinstance(val, Field)][0]
+    format_func_var = [
+        name for name, val in code.variables.items() if callable(val) and not isinstance(val, MarshmallowField)
+    ][0]
     assert str(code) == f"if value is not None:\n    value = {format_func_var}(value)"
     assert_compilable(code, {})
 
@@ -454,7 +460,7 @@ def test_timedelta_serialization_matches_marshmallow(precision: str, value: obje
         (IPv6SerializationInliner, IPv6),
     ],
 )
-def test_ip_serialization_inliner_code(inliner_cls: type[Inliner], field_cls: type[Field]) -> None:
+def test_ip_serialization_inliner_code(inliner_cls: type[Inliner], field_cls: type[MAField]) -> None:
     code = generate(inliner_cls(), field_cls())
     assert str(code) == "if value is not None:\n    value = value.compressed"
     # The generate() helper registers a field variable
@@ -463,7 +469,7 @@ def test_ip_serialization_inliner_code(inliner_cls: type[Inliner], field_cls: ty
 
 
 @pytest.mark.parametrize("inliner_cls,field_cls", [(IPSerializationInliner, IP), (IPv6SerializationInliner, IPv6)])
-def test_ip_serialization_inliner_code_exploded(inliner_cls: type[Inliner], field_cls: type[Field]) -> None:
+def test_ip_serialization_inliner_code_exploded(inliner_cls: type[Inliner], field_cls: type[MAField]) -> None:
     code = generate(inliner_cls(), field_cls(exploded=True))
     assert str(code) == "if value is not None:\n    value = value.exploded"
     # The generate() helper registers a field variable
@@ -481,7 +487,7 @@ def test_ip_serialization_inliner_code_exploded(inliner_cls: type[Inliner], fiel
 )
 @pytest.mark.parametrize("exploded", [False, True])
 def test_ip_serialization_matches_marshmallow(
-    inliner_cls: type[Inliner], field_cls: type[Field], value: object, exploded: bool
+    inliner_cls: type[Inliner], field_cls: type[MAField], value: object, exploded: bool
 ) -> None:
     field = field_cls(exploded=exploded)
     assert_matches_marshmallow(inliner_cls(), field, value)
@@ -498,7 +504,7 @@ def test_ip_serialization_matches_marshmallow(
 )
 @pytest.mark.parametrize("exploded", [False, True])
 def test_ip_interface_serialization_matches_marshmallow(
-    inliner_cls: type[Inliner], field_cls: type[Field], value: object, exploded: bool
+    inliner_cls: type[Inliner], field_cls: type[MAField], value: object, exploded: bool
 ) -> None:
     field = field_cls(exploded=exploded)
     assert_matches_marshmallow(inliner_cls(), field, value)
