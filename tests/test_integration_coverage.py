@@ -1327,7 +1327,7 @@ class TestContextPassing:
             class ParentSchemaPlain(Schema):
                 child = fields.Nested(ChildSchemaPlain)
 
-            plain_schema = ParentSchemaPlain(context={"uppercase": True})  # type: ignore[call-arg]
+            plain_schema = ParentSchemaPlain(context={"uppercase": True})  # ty: ignore[unknown-argument] # type: ignore[unknown-argument]
             plain_result = plain_schema.dump({"child": {"name": "alice"}})
 
             # JIT
@@ -1339,7 +1339,9 @@ class TestContextPassing:
             class ParentSchema(Schema):
                 child = fields.Nested(ChildSchema)
 
-            jit_schema_instance = ParentSchema(context={"uppercase": True})  # type: ignore[call-arg]
+            jit_schema_instance = ParentSchema(
+                context={"uppercase": True}  # ty: ignore[unknown-argument]
+            )
             jit_result = jit_schema_instance.dump({"child": {"name": "alice"}})
 
             compare_results(jit_result, plain_result, "context passing")

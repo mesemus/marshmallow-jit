@@ -109,6 +109,39 @@ exclude = ["marshmallow_jit/compat.py"]
 # Enable all rules by default
 all = "error"
 
+# marshmallow 3 vs. 4 api changes - we need to ignore those in tests/sources
+[[tool.ty.overrides]]
+include = ["tests/"]
+
+[tool.ty.overrides.rules]
+unused-ignore-comment = "ignore"
+unresolved-import = "ignore"
+missing-type-argument = "ignore"
+unknown-argument = "ignore"
+invalid-argument-type = "ignore"
+invalid-method-override = "ignore"
+
+[[tool.ty.overrides]]
+include = ["marshmallow_jit/schema.py"]
+
+[tool.ty.overrides.rules]
+unknown-argument = "ignore"
+
+[[tool.ty.overrides]]
+include = ["marshmallow_jit/jit/inliners/timedelta.py"]
+
+[tool.ty.overrides.rules]
+unresolved-attribute = "ignore"
+
+
+[[tool.ty.overrides]]
+include = ["marshmallow_jit/contrib/marshmallow_utils.py"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
+
+
+
 [tool.pytest.ini_options]
 addopts = "--cov=marshmallow_jit --cov-report=term-missing"
 
