@@ -58,12 +58,14 @@ def _jit_deserialize_SerializeDictSchema_1(
                 for key_2, val_2 in value.items():
                     key_success_3 = True
                     try:
-                        if not isinstance(key_2, (str, bytes)):
-                            raise a_key_key_field_5.make_error("invalid")
-                        try:
-                            key_2 = marshmallow.utils.ensure_text_type(key_2)
-                        except UnicodeDecodeError as error:
-                            raise a_key_key_field_5.make_error("invalid_utf8") from error
+                        # Only call ensure_text_type if needed (already a str is fast path)
+                        if type(key_2) is not str:
+                            if not isinstance(key_2, (str, bytes)):
+                                raise a_key_key_field_5.make_error("invalid")
+                            try:
+                                key_2 = marshmallow.utils.ensure_text_type(key_2)
+                            except UnicodeDecodeError as error:
+                                raise a_key_key_field_5.make_error("invalid_utf8") from error
                         key_2 = key_2
                     except ValidationError as error:
                         errors_2[key_2] = {"key": error.messages}
@@ -77,12 +79,14 @@ def _jit_deserialize_SerializeDictSchema_1(
                         result_3 = []
                         for idx_3, item_3 in enumerate(val_2_iter):
                             try:
-                                if not isinstance(item_3, (str, bytes)):
-                                    raise a_value_idx_3_inner_field_7.make_error("invalid")
-                                try:
-                                    item_3 = marshmallow.utils.ensure_text_type(item_3)
-                                except UnicodeDecodeError as error:
-                                    raise a_value_idx_3_inner_field_7.make_error("invalid_utf8") from error
+                                # Only call ensure_text_type if needed (already a str is fast path)
+                                if type(item_3) is not str:
+                                    if not isinstance(item_3, (str, bytes)):
+                                        raise a_value_idx_3_inner_field_7.make_error("invalid")
+                                    try:
+                                        item_3 = marshmallow.utils.ensure_text_type(item_3)
+                                    except UnicodeDecodeError as error:
+                                        raise a_value_idx_3_inner_field_7.make_error("invalid_utf8") from error
                                 if item_3 is not missing:
                                     result_3.append(item_3)
                             except ValidationError as error:

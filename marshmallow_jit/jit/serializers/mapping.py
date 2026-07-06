@@ -5,8 +5,9 @@
 from typing import TYPE_CHECKING, override
 
 from marshmallow import fields as marshmallow_fields
-from marshmallow.fields import Field
+from marshmallow.fields import Field as MarshmallowField
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.config import FAIL_ON_UNKNOWN_FIELD_TYPE
 from marshmallow_jit.jit.accessors.base import ValueAccessor
 from marshmallow_jit.jit.accessors.dict import DictAccessor
@@ -152,7 +153,7 @@ class BaseSchemaSerializer(SchemaSerializer):
             )
         # Check for field-specific accessor factories (e.g., NestedAttribute -> InstanceAccessor)
         try:
-            return serialization_accessor_registry.find(self.schema, attr_name, field_obj)
+            return serialization_accessor_registry.try_find(self.schema, attr_name, field_obj)
         except KeyError:
             pass
         return self.default_value_accessor()
@@ -237,11 +238,15 @@ class BaseSchemaDeserializer(SchemaDeserializer):
 
                 # Determine if we need to prepare partial kwargs (d_kwargs)
                 # - If deserialize() is overridden, we must call it with **d_kwargs
+                # - If _validate_missing() is overridden, we must call deserialize() with **d_kwargs
                 # - If no inliner exists, we fall back to _deserialize which uses **d_kwargs
                 # - If we have an inliner that needs partial kwargs, generate d_kwargs
                 # - Otherwise, the inliner handles deserialization directly without d_kwargs
                 needs_partial_kwargs = (
-                    deserialize_is_overridden or value_inliner is None or value_inliner.needs_partial_kwargs
+                    deserialize_is_overridden
+                    or validate_missing_is_overridden
+                    or value_inliner is None
+                    or value_inliner.needs_partial_kwargs
                 )
 
                 code += f"""
@@ -330,8 +335,10 @@ class BaseSchemaDeserializer(SchemaDeserializer):
                                         )
                                     """
                                     # Call _validate only if needed (compile-time check)
-                                    has_custom_validate = is_overridden(field_obj._validate, Field._validate)
-                                    has_custom_validate_all = is_property_overridden(field_obj, "_validate_all", Field)
+                                    has_custom_validate = is_overridden(field_obj._validate, MarshmallowField._validate)
+                                    has_custom_validate_all = is_property_overridden(
+                                        field_obj, "_validate_all", MarshmallowField
+                                    )
                                     has_validators = bool(field_obj.validators)
 
                                     if has_custom_validate or has_custom_validate_all or has_validators:
@@ -392,8 +399,9 @@ class BaseSchemaDeserializer(SchemaDeserializer):
             return deserialization_value_setter_registry.resolve(
                 self.schema._jit_options.deserialization_value_setter, self.schema, attr_name, field_obj
             )
+        # Check for field-specific setter factories
         try:
-            return deserialization_value_setter_registry.find(self.schema, attr_name, field_obj)
+            return deserialization_value_setter_registry.try_find(self.schema, attr_name, field_obj)
         except KeyError:
             pass
         return self.default_value_setter()

@@ -4,11 +4,11 @@ on:
   push:
     branches: [main, master, develop]
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
   schedule:
     # Run weekly on Monday at 00:00 UTC
-    - cron: '0 0 * * 1'
+    - cron: "0 0 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -31,7 +31,9 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --group dev --group marshmallow3
+        run: |
+          uv sync --group dev --group marshmallow3
+          uv pip install -e .
 
       - name: Run ruff linting
         run: uv run ruff check marshmallow_jit tests
@@ -58,7 +60,9 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --group dev --group marshmallow3
+        run: |
+          uv sync --group dev --group marshmallow3
+          uv pip install -e .
 
       - name: Run ty type checking
         run: uv run ty check marshmallow_jit tests
@@ -96,6 +100,7 @@ jobs:
           else
             uv sync --group dev --group marshmallow4
           fi
+          uv pip install -e .
 
       - name: Run tests
         run: uv run pytest --cov=marshmallow_jit --cov-report=xml --cov-report=term-missing -v
@@ -129,7 +134,9 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --group dev --group marshmallow3
+        run: |
+          uv sync --group dev --group marshmallow3
+          uv pip install -e .
 
       - name: Run tests with coverage
         run: uv run pytest --cov=marshmallow_jit --cov-report=term-missing

@@ -39,6 +39,8 @@ jobs:
           else
             uv sync --group dev --group marshmallow4
           fi
+          # Install package in editable mode to register entry points
+          uv pip install -e .
 
       - name: Run linting with ruff
         run: |

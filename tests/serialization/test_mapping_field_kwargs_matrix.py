@@ -15,13 +15,13 @@ from typing import Any
 
 from conftest import build_source_kwargs, configure_field
 from marshmallow import Schema
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField
 from marshmallow_jit.schema import JITSchemaMixin
 
 
 def build_schemas(
-    field_factory: Callable[[], Field], base_value: Any, kwargs_case: str
+    field_factory: Callable[[], MAField], base_value: Any, kwargs_case: str
 ) -> tuple[type[Schema], type[Schema]]:
     field = field_factory()
     configure_field(field, base_value, kwargs_case)
@@ -44,7 +44,7 @@ def dump_or_error(schema_cls: type[Schema], source_kwargs: dict[str, Any]) -> tu
 
 
 def test_jit_serialization_matches_plain_marshmallow(
-    field_factory: Callable[[], Field], base_value: Any, kwargs_case: str
+    field_factory: Callable[[], MAField], base_value: Any, kwargs_case: str
 ) -> None:
     plain_schema, jit_schema = build_schemas(field_factory, base_value, kwargs_case)
     source_kwargs = build_source_kwargs(base_value, kwargs_case)

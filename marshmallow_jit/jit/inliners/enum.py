@@ -5,8 +5,9 @@
 from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
-from marshmallow.fields import Enum, Field
 
+from marshmallow_jit.compat import MAEnum
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 
@@ -28,7 +29,7 @@ class EnumSerializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
-        field = cast(Enum, field)
+        field = cast(MAEnum, field)
         with code.indent(f"if {value_variable_name} is not None"):
             if not field.by_value:
                 # Enum.__init__ always sets self.field = String() in this branch, and
@@ -69,44 +70,68 @@ class EnumDeserializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
-        field = cast(Enum, field)
+        from marshmallow_jit.compat import _MARSHMALLOW_MAJOR_VERSION
+
+        field = cast(MAEnum, field)
 
         enum_var = code.add_variable(f"field__{attr_name}__enum", field.enum)
 
+        # In marshmallow 4, if value is already an enum instance, it's accepted
+        # In marshmallow 3, enum instances are rejected and must be name strings or values
+        if _MARSHMALLOW_MAJOR_VERSION >= 4:
+            # Marshmallow 4: Skip parsing if already the correct enum instance
+            with code.indent(f"if not isinstance({value_variable_name}, {enum_var})"):
+                self._generate_parsing_code(
+                    code, value_variable_name, field_obj_variable_name, field, attr_name, enum_var
+                )
+        else:
+            # Marshmallow 3: Always parse (enum instances will fail in the parser)
+            self._generate_parsing_code(code, value_variable_name, field_obj_variable_name, field, attr_name, enum_var)
+
+    def _generate_parsing_code(
+        self,
+        code: PythonCode,
+        value_variable_name: str,
+        field_obj_variable_name: str,
+        field: MAEnum,
+        attr_name: str,
+        enum_var: str,
+    ) -> None:
+        """Generate the enum parsing code based on by_value configuration."""
         if not field.by_value:
             # by_value=False: look up by name
             # First deserialize using the inner String field, then look up the enum member
             inner_field_variable = code.add_variable(f"field__{attr_name}__inner", field.field)
             code += f"""
-            # First validate and deserialize using the inner field (String)
-            {value_variable_name} = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
-            try:
-                {value_variable_name} = getattr({enum_var}, {value_variable_name})
-            except AttributeError as error:
-                raise {field_obj_variable_name}.make_error(
-                    "unknown", choices={field_obj_variable_name}.choices_text
-                ) from error
-            """
+# First validate and deserialize using the inner field (String)
+{value_variable_name} = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
+try:
+    {value_variable_name} = getattr({enum_var}, {value_variable_name})
+except AttributeError as error:
+    raise {field_obj_variable_name}.make_error(
+        "unknown", choices={field_obj_variable_name}.choices_text
+    ) from error
+"""
         elif field.by_value is True:
             # by_value=True: look up by value (uses Raw field internally)
             code += f"""
-            try:
-                {value_variable_name} = {enum_var}({value_variable_name})
-            except ValueError as error:
-                raise {field_obj_variable_name}.make_error(
-                    "unknown", choices={field_obj_variable_name}.choices_text
-                ) from error
-            """
+try:
+    {value_variable_name} = {enum_var}({value_variable_name})
+except ValueError as error:
+    raise {field_obj_variable_name}.make_error(
+        "unknown", choices={field_obj_variable_name}.choices_text
+    ) from error
+"""
         else:
             # by_value=<custom field>: deserialize using custom field, then create enum
             inner_field_variable = code.add_variable(f"field__{attr_name}__inner", field.field)
             code += f"""
-            # First deserialize using the inner field
-            temp_value = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
-            try:
-                {value_variable_name} = {enum_var}(temp_value)
-            except ValueError as error:
-                raise {field_obj_variable_name}.make_error(
-                    "unknown", choices={field_obj_variable_name}.choices_text
-                ) from error
-            """
+# First deserialize using the inner field
+temp_value = {inner_field_variable}._deserialize({value_variable_name}, {attr_name!r}, data)
+try:
+    {value_variable_name} = {enum_var}(temp_value)
+except ValueError as error:
+    raise {field_obj_variable_name}.make_error(
+        "unknown", choices={field_obj_variable_name}.choices_text
+    ) from error
+"""

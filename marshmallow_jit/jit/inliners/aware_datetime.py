@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
 from marshmallow.fields import AwareDateTime as AwareDateTimeField
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 
@@ -56,30 +56,44 @@ class AwareDateTimeDeserializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
+        from marshmallow_jit.compat import _MARSHMALLOW_MAJOR_VERSION
+
         field = cast(AwareDateTimeField, field)
         # Add necessary imports
         code.add_import_line("import datetime as dt")
-        code.add_import_line("from marshmallow.utils import from_iso_datetime, is_aware")
+        code.add_import_line("from marshmallow_jit.compat import from_iso_datetime")
+        code.add_import_line("from marshmallow.utils import is_aware")
 
-        # First deserialize as regular datetime
-        code += f"""
-        try:
-            {value_variable_name} = from_iso_datetime({value_variable_name})
-        except (TypeError, AttributeError, ValueError) as error:
-            raise {field_obj_variable_name}.make_error(
-                "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
-            ) from error
-        """
+        # In marshmallow 4, if value is already a datetime instance, it's accepted
+        # In marshmallow 3, datetime instances are rejected and must be strings
+        if _MARSHMALLOW_MAJOR_VERSION >= 4:
+            # Marshmallow 4: Skip parsing if already a datetime
+            with code.indent(f"if not isinstance({value_variable_name}, dt.datetime)"):
+                self._generate_parsing_code(code, value_variable_name, field_obj_variable_name)
+        else:
+            # Marshmallow 3: Always parse (datetime instances will fail in the parser)
+            self._generate_parsing_code(code, value_variable_name, field_obj_variable_name)
 
         # Then check if naive and handle accordingly
         default_tz_var = code.add_variable(f"field__{attr_name}__default_tz", field.default_timezone)
         code += f"""
-        if not is_aware({value_variable_name}):
-            if {default_tz_var} is None:
-                raise {field_obj_variable_name}.make_error(
-                    "invalid_awareness",
-                    awareness={field_obj_variable_name}.AWARENESS,
-                    obj_type={field_obj_variable_name}.OBJ_TYPE
-                )
-            {value_variable_name} = {value_variable_name}.replace(tzinfo={default_tz_var})
-        """
+if not is_aware({value_variable_name}):
+    if {default_tz_var} is None:
+        raise {field_obj_variable_name}.make_error(
+            "invalid_awareness",
+            awareness={field_obj_variable_name}.AWARENESS,
+            obj_type={field_obj_variable_name}.OBJ_TYPE
+        )
+    {value_variable_name} = {value_variable_name}.replace(tzinfo={default_tz_var})
+"""
+
+    def _generate_parsing_code(self, code: PythonCode, value_variable_name: str, field_obj_variable_name: str) -> None:
+        """Generate the datetime parsing code."""
+        code += f"""
+try:
+    {value_variable_name} = from_iso_datetime({value_variable_name})
+except (TypeError, AttributeError, ValueError) as error:
+    raise {field_obj_variable_name}.make_error(
+        "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+    ) from error
+"""

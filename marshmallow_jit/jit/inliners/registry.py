@@ -4,8 +4,8 @@
 """Registry for serialization and deserialization inliners."""
 
 from marshmallow import Schema
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.registry import Registry
 
 from .base import Inliner

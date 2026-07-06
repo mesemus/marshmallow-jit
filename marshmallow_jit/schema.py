@@ -9,10 +9,11 @@ to apply JIT-compiled serialization/deserialization to marshmallow schemas.
 import dataclasses
 import types
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, cast
 
 from marshmallow import Schema
 
+from marshmallow_jit.compat import HAS_CONTEXT_PARAM
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.setters import ValueSetter
 
@@ -109,19 +110,31 @@ class JITSchemaMixin(JITSchemaBase):
         load_only: Sequence[str] | set[str] = (),
         dump_only: Sequence[str] | set[str] = (),
         partial: bool | Sequence[str] | set[str] | None = None,
-        unknown: str | None = None,
+        unknown: Literal["raise", "exclude", "include"] | None = None,
     ) -> None:
         # super().__init__ is a bound method, so we call it directly
-        super().__init__(
-            only=only,
-            exclude=exclude,
-            many=many,
-            context=context,
-            load_only=load_only,
-            dump_only=dump_only,
-            partial=partial,
-            unknown=unknown,
-        )
+        # In marshmallow 4, context parameter was removed
+        if HAS_CONTEXT_PARAM:
+            super().__init__(
+                only=only,
+                exclude=exclude,
+                many=many,
+                context=context,  # type: ignore[call-arg]
+                load_only=load_only,
+                dump_only=dump_only,
+                partial=partial,
+                unknown=unknown,
+            )
+        else:
+            super().__init__(
+                only=only,
+                exclude=exclude,
+                many=many,
+                load_only=load_only,
+                dump_only=dump_only,
+                partial=partial,
+                unknown=unknown,
+            )
 
         if self._jit_applied:
             return
@@ -163,17 +176,32 @@ class JITSchemaMixin(JITSchemaBase):
     ) -> None:
         """Call the previous ``__init__`` and apply JIT options if not already applied."""
         # prev_init is the unbound __init__ method, so we need to pass self (instance)
-        prev_init(
-            instance,
-            only=only,
-            exclude=exclude,
-            many=many,
-            context=context,
-            load_only=load_only,
-            dump_only=dump_only,
-            partial=partial,
-            unknown=unknown,
-        )
+        # In marshmallow 4, context parameter was removed
+        from marshmallow_jit.compat import HAS_CONTEXT_PARAM
+
+        if HAS_CONTEXT_PARAM:
+            prev_init(
+                instance,
+                only=only,
+                exclude=exclude,
+                many=many,
+                context=context,
+                load_only=load_only,
+                dump_only=dump_only,
+                partial=partial,
+                unknown=unknown,
+            )
+        else:
+            prev_init(
+                instance,
+                only=only,
+                exclude=exclude,
+                many=many,
+                load_only=load_only,
+                dump_only=dump_only,
+                partial=partial,
+                unknown=unknown,
+            )
 
         if instance._jit_applied:
             return

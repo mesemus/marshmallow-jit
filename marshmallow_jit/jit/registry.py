@@ -173,12 +173,27 @@ class Registry[T, **P]:
 
         Raises KeyError with detailed context if no factory matches.
         """
+        return self._find_impl(args, kwargs, silent=False)
+
+    def try_find(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        """Find the first factory matching the given arguments (silent mode).
+
+        Like find() but doesn't log warnings when no factory matches.
+        Useful when checking for optional field-specific handlers.
+
+        Raises KeyError without logging if no factory matches.
+        """
+        return self._find_impl(args, kwargs, silent=True)
+
+    def _find_impl(self, args: tuple[Any, ...], kwargs: dict[str, Any], silent: bool) -> T:
+        """Internal implementation of find with silent option."""
         for factory in self.factories:
             if (ret := factory.find(*args, **kwargs)) is not None:
                 return ret
 
-        # Log detailed warning before raising
-        self._log_resolution_failure(args, kwargs, f"No factory found for {self.entrypoint_name}")
+        # Log detailed warning before raising (unless silenced)
+        if not silent:
+            self._log_resolution_failure(args, kwargs, f"No factory found for {self.entrypoint_name}")
 
         raise KeyError(
             f"Could not find factory {self.entrypoint_name} for {args} {kwargs}. "

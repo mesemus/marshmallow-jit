@@ -9,6 +9,7 @@ def _jit_serialize_SerializeStringSchema_1(self, obj: typing.Any, *, many: bool 
         value = missing
     if value is not missing:
         if value is not None:
-            value = marshmallow.utils.ensure_text_type(value)
+            if type(value) is not str:
+                value = marshmallow.utils.ensure_text_type(value)
         ret_2['a'] = value
     return ret_2

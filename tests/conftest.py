@@ -55,12 +55,14 @@ from marshmallow.fields import (
     Url,
 )
 
+from marshmallow_jit.compat import HAS_TIMEDELTA_SERIALIZATION_TYPE, MAField
+
 # Import marshmallow-utils fields if available
 try:
-    from marshmallow_utils.fields import (
+    from marshmallow_utils.fields import (  # type: ignore[unresolved-import]
         URL as UtilsURL,
     )
-    from marshmallow_utils.fields import (
+    from marshmallow_utils.fields import (  # type: ignore[unresolved-import]
         EDTFDateString,
         EDTFDateTimeString,
         EDTFLevel2DateString,
@@ -74,7 +76,9 @@ try:
         TrimmedString,
         TZDateTime,
     )
-    from marshmallow_utils.fields.nestedattr import NestedAttribute as MarshmallowUtilsNestedAttribute
+    from marshmallow_utils.fields.nestedattr import (
+        NestedAttribute as MarshmallowUtilsNestedAttribute,  # type: ignore[unresolved-import]
+    )
 
     MARSHMALLOW_UTILS_AVAILABLE = True
 except ImportError:
@@ -96,10 +100,10 @@ except ImportError:
     class ISOLangString(Str):
         pass
 
-    class IdentifierSet(List):
+    class IdentifierSet(List):  # type: ignore[misc,type-arg]
         pass
 
-    class IdentifierValueSet(List):
+    class IdentifierValueSet(List):  # type: ignore[misc,type-arg]
         pass
 
     class SanitizedHTML(Str):
@@ -263,7 +267,7 @@ class _CustomStrField(Str):
     """Str field with overridden _deserialize to test fallback behavior."""
 
     @override
-    def _deserialize(self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any) -> str | None:
+    def _deserialize(self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any) -> str | None:  # type: ignore[override]
         # Custom deserialization: prepend "str-" to the result
         result = super()._deserialize(value, attr, data, **kwargs)
         if result is not None:
@@ -316,7 +320,7 @@ class _CustomTimeDeltaField(TimeDelta):
     @override
     def _deserialize(
         self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any
-    ) -> dt.timedelta | None:
+    ) -> dt.timedelta | None:  # type: ignore[override]
         # Custom deserialization: double the timedelta
         result = super()._deserialize(value, attr, data, **kwargs)
         if result is not None:
@@ -338,9 +342,7 @@ class _UnrecognizedField(Field):
         return f"unrecognized:{value}"
 
     @override
-    def _deserialize(
-        self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any
-    ) -> Any:
+    def _deserialize(self, value: Any, attr: str | None, data: Mapping[str, Any] | None, **kwargs: Any) -> Any:
         return f"unrecognized:{value}"
 
 
@@ -392,10 +394,34 @@ FIELD_MATRIX: list[tuple[str, Callable[[], Field], list[Any]]] = [
     ("date_custom_format", lambda: Date(format="%Y/%m/%d"), [dt.date(2024, 1, 2), "not-a-date"]),
     ("timedelta_seconds", lambda: TimeDelta(), [dt.timedelta(days=1, seconds=2), "not-a-timedelta", 5]),
     ("timedelta_days", lambda: TimeDelta(precision="days"), [dt.timedelta(days=3), "not-a-timedelta"]),
-    (
-        "timedelta_float",
-        lambda: TimeDelta(serialization_type=float),
-        [dt.timedelta(hours=1, minutes=30), "not-a-timedelta", 1.5],
+    # In marshmallow 3, TimeDelta has serialization_type parameter
+    # In marshmallow 4, TimeDelta always uses float serialization
+    *(
+        [
+            (
+                "timedelta_float",
+                lambda: TimeDelta(serialization_type=float),
+                [dt.timedelta(hours=1, minutes=30), "not-a-timedelta", 1.5],
+            ),
+            (
+                "custom_timedelta",
+                lambda: TimeDelta(precision="hours", serialization_type=int),
+                [dt.timedelta(hours=3, minutes=15), "not-a-timedelta", 3],
+            ),
+        ]
+        if HAS_TIMEDELTA_SERIALIZATION_TYPE
+        else [
+            (
+                "timedelta_float",
+                lambda: TimeDelta(),
+                [dt.timedelta(hours=1, minutes=30), "not-a-timedelta", 1.5],
+            ),
+            (
+                "custom_timedelta",
+                lambda: TimeDelta(precision="hours"),
+                [dt.timedelta(hours=3, minutes=15), "not-a-timedelta", 3.25],
+            ),
+        ]
     ),
     (
         "ip",
@@ -700,7 +726,7 @@ PARTIAL_DESERIALIZATION_CASES = [
 ]
 
 
-def configure_field(field: Field, base_value: Any, kwargs_case: str) -> None:
+def configure_field(field: MAField, base_value: Any, kwargs_case: str) -> None:
     """Mutates `field` in place to exercise one dump_default/attribute/data_key scenario."""
     if kwargs_case == "dump_default_missing":
         field.dump_default = base_value
@@ -712,7 +738,7 @@ def configure_field(field: Field, base_value: Any, kwargs_case: str) -> None:
         field.data_key = "external"
 
 
-def configure_deserialization_field(field: Field, base_value: Any, kwargs_case: str) -> None:
+def configure_deserialization_field(field: MAField, base_value: Any, kwargs_case: str) -> None:
     """Mutates `field` in place to exercise one load_default/data_key scenario."""
     if kwargs_case == "load_default_missing":
         field.load_default = base_value

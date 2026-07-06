@@ -5,9 +5,9 @@
 from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
-from marshmallow.fields import Field
 from marshmallow.fields import Time as TimeField
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 
@@ -56,31 +56,53 @@ class TimeDeserializationInliner(Inliner):
         field: Field,
         context: Context,
     ) -> None:
+        from marshmallow_jit.compat import _MARSHMALLOW_MAJOR_VERSION
+
         field = cast(TimeField, field)
         # Add necessary imports
         code.add_import_line("import datetime as dt")
 
         data_format = field.format or field.DEFAULT_FORMAT
+
+        # In marshmallow 4, if value is already a time instance, it's accepted
+        # In marshmallow 3, time instances are rejected and must be strings
+        if _MARSHMALLOW_MAJOR_VERSION >= 4:
+            # Marshmallow 4: Skip parsing if already a time
+            with code.indent(f"if not isinstance({value_variable_name}, dt.time)"):
+                self._generate_parsing_code(code, value_variable_name, field_obj_variable_name, field, data_format)
+        else:
+            # Marshmallow 3: Always parse (time instances will fail in the parser)
+            self._generate_parsing_code(code, value_variable_name, field_obj_variable_name, field, data_format)
+
+    def _generate_parsing_code(
+        self,
+        code: PythonCode,
+        value_variable_name: str,
+        field_obj_variable_name: str,
+        field: TimeField,
+        data_format: str,
+    ) -> None:
+        """Generate the time parsing code based on field format."""
         func = field.DESERIALIZATION_FUNCS.get(data_format)
 
         if func is not None:
             # Use built-in deserialization function (iso/iso8601 both use from_iso_time)
-            code.add_import_line("from marshmallow.utils import from_iso_time")
+            code.add_import_line("from marshmallow_jit.compat import from_iso_time")
             code += f"""
-            try:
-                {value_variable_name} = from_iso_time({value_variable_name})
-            except (TypeError, AttributeError, ValueError) as error:
-                raise {field_obj_variable_name}.make_error(
-                    "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
-                ) from error
-            """
+try:
+    {value_variable_name} = from_iso_time({value_variable_name})
+except (TypeError, AttributeError, ValueError) as error:
+    raise {field_obj_variable_name}.make_error(
+        "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+    ) from error
+"""
         else:
             # Custom format - use strptime and extract time
             code += f"""
-            try:
-                {value_variable_name} = dt.datetime.strptime({value_variable_name}, {data_format!r}).time()
-            except (TypeError, AttributeError, ValueError) as error:
-                raise {field_obj_variable_name}.make_error(
-                    "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
-                ) from error
-            """
+try:
+    {value_variable_name} = dt.datetime.strptime({value_variable_name}, {data_format!r}).time()
+except (TypeError, AttributeError, ValueError) as error:
+    raise {field_obj_variable_name}.make_error(
+        "invalid", input={value_variable_name}, obj_type={field_obj_variable_name}.OBJ_TYPE
+    ) from error
+"""

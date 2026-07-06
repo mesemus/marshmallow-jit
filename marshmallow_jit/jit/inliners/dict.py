@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, cast, override
 
 from marshmallow import Schema
 from marshmallow.fields import Dict as DictField
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 
@@ -53,11 +53,11 @@ class DictSerializationInliner(Inliner):
                 # Use unique variable names based on context level
                 key_var = f"key_{context.level}"
                 val_var = f"value_{context.level}"
+                keys_dict_var = f"{value_variable_name}_keys"
 
                 # Phase 1: Serialize keys if key_field is defined
                 # Build a keys dict: {original_key: serialized_key}
                 if field.key_field is not None:
-                    keys_dict_var = f"{value_variable_name}_keys"
                     code += f"{keys_dict_var} = {{}}"
 
                     with code.indent(f"for {key_var} in {iter_var}"):

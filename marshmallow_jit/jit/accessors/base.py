@@ -9,8 +9,8 @@ used by all accessor implementations (DictAccessor, InstanceAccessor, HybridAcce
 from typing import TYPE_CHECKING
 
 from marshmallow import Schema
-from marshmallow.fields import Field
 
+from marshmallow_jit.compat import MAField as Field
 from marshmallow_jit.jit.context import Context
 from marshmallow_jit.jit.python_code import PythonCode
 from marshmallow_jit.utils import is_overridden
