@@ -95,11 +95,7 @@ jobs:
       - name: Install dependencies (Marshmallow ${{ matrix.marshmallow-version }})
         shell: bash
         run: |
-          if [ "${{ matrix.marshmallow-version }}" = "3" ]; then
-            uv sync --group dev --group marshmallow3
-          else
-            uv sync --group dev --group marshmallow4
-          fi
+          uv sync --group dev --group marshmallow${{ matrix.marshmallow-version }}
           uv pip install -e .
 
       - name: Run tests
